@@ -4,7 +4,10 @@ import json
 
 from aiogram import F, Bot, types, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.state import State, StatesGroup
+# from aiogram.enums import ParseMode
 
 bot = Bot(token='6747593068:AAGdf7qZtm5ptYQ8FShElqKnkcZRZxiWGlA')
 dp = Dispatcher()
@@ -13,25 +16,33 @@ with open('data_for_mess.json', 'r') as json_file:
     mes_data = json.load(json_file)
 
 callback_area = ['chelyabinsk', 'kurgan']
+callback_route = [
+    'route_chelyabinsk_1',
+    'route_chelyabinsk_2',
+    'route_chelyabinsk_3',
+    'route_chelyabinsk_4',
+    'route_kurgan_1',
+    'route_kurgan_2',
+    'route_kurgan_3',
+    'route_kurgan_4'
+]
+callback_type_road_deficiencies = ['type_1', 'type_2', 'type_3', 'type_4']
 
 
-def get_route_chelyabinsk_mk():
+class ProfileStatesGroup(StatesGroup):
+    input_photo = State()
+    input_location = State()
+
+
+# функция создания клавитатуры из 4 рядов по 1 кнопке
+def get_route_mk(city):
     markup = InlineKeyboardBuilder()
     for i in range(4):
         btn = types.InlineKeyboardButton(
-            text=mes_data['route_chelyabinsk'][i],
-            callback_data=f'route_chelyabinsk_{i + 1}')
-        markup.row(btn)
-    return markup
-
-
-def get_route_kurgan_mk():
-    markup = InlineKeyboardBuilder()
-    for i in range(4):
-        btn = types.InlineKeyboardButton(
-            text=mes_data['route_kurgan'][i],
-            callback_data=f'route_kurgan_{i + 1}')
-        markup.row(btn)
+            text=mes_data[f'route_{city}'][i],
+            callback_data=f'route_{city}_{i + 1}'
+        )
+        markup.row(btn)   # заносится по 1 кнопке на ряд
     return markup
 
 
@@ -53,17 +64,17 @@ async def route_choice(callback: types.CallbackQuery):
         await callback.message.answer(text='Челябинская область')
         await callback.message.answer(
             text=mes_data['route_choice'],
-            reply_markup=get_route_chelyabinsk_mk().as_markup()
+            reply_markup=get_route_mk(city='chelyabinsk').as_markup()
         )
     else:
         await callback.message.answer(text='Курганская область')
         await callback.message.answer(
             text=mes_data['route_choice'],
-            reply_markup=get_route_kurgan_mk().as_markup()
+            reply_markup=get_route_mk(city='kurgan').as_markup()
         )
 
 
-@dp.callback_query(F.data)  # обрабатываются все колбэки, кроме конкретных
+@dp.callback_query(F.data.in_(callback_route))  # обрабатываются все колбэки, кроме конкретных
 async def choose_action(callback: types.CallbackQuery):
     markup = InlineKeyboardBuilder()
     btn1 = types.InlineKeyboardButton(text='Сообщить', callback_data='report')
@@ -73,6 +84,65 @@ async def choose_action(callback: types.CallbackQuery):
         text=mes_data['choose_action'],
         reply_markup=markup.as_markup()
     )
+
+
+@dp.callback_query(F.data == 'report')
+async def choose_report(callback: types.CallbackQuery):
+    markup = InlineKeyboardBuilder()
+    for i in range(4):
+        btn = types.InlineKeyboardButton(
+            text=mes_data['choose_report'][i],
+            callback_data=f'option_{i + 1}'
+        )
+        markup.row(btn)
+    await callback.message.answer(
+        text=mes_data['text_report'],
+        reply_markup=markup.as_markup()
+    )
+
+
+@dp.callback_query(F.data == 'option_1')
+async def traffic_accident(callback: types.CallbackQuery):
+    await callback.message.answer(text=mes_data['traffic_accident'])
+
+
+@dp.callback_query(F.data == 'option_2')
+async def road_deficiencies(callback: types.CallbackQuery):
+    await callback.message.answer(text=mes_data['road_deficiencies'])
+    markup = InlineKeyboardBuilder()
+    for i in range(4):
+        btn = types.InlineKeyboardButton(
+            text=mes_data['type_road_deficiencies'][i],
+            callback_data=f'type_{i + 1}'
+        )
+        markup.row(btn)
+    await callback.message.answer(
+        text=mes_data['text_for_type_road_deficiencies'],
+        reply_markup=markup.as_markup()
+    )
+
+
+@dp.callback_query(F.data.in_(callback_type_road_deficiencies))
+async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
+    markup = InlineKeyboardBuilder()
+    markup.add(types.InlineKeyboardButton(
+        text='Пропустить этап',
+        callback_data='cansel'
+    )
+    )
+    await callback.message.answer(
+        text=mes_data['photo_road_deficiencies'],
+        reply_markup=markup.as_markup()
+    )
+    await state.set_state(ProfileStatesGroup.input_photo)  # вешаем cтатус ожидания фото
+
+
+@dp.callback_query(
+    F.photo or F.data == 'cansel',
+    ProfileStatesGroup.input_photo)
+async def locate_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(text=mes_data['locate_road_deficiencies'])
+    await state.set_state(ProfileStatesGroup.input_location)  # вешаем статус ожидания геолокации
 
 
 async def main():
