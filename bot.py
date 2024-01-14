@@ -9,6 +9,8 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.state import State, StatesGroup
 # from aiogram.enums import ParseMode
 
+from db_map import db_start, create_profile, edit_area
+
 bot = Bot(token='6747593068:AAGdf7qZtm5ptYQ8FShElqKnkcZRZxiWGlA')
 dp = Dispatcher()
 
@@ -56,18 +58,25 @@ async def choice_of_area(message: types.Message):
         text=mes_data['choice_of_area'],
         reply_markup=markup.as_markup()
     )
+    # работа с бд
+    global tg_user_id
+    tg_user_id = str(message.from_user.id)
+    await db_start()
+    await create_profile(user_id=tg_user_id)
 
 
 @dp.callback_query(F.data.in_(callback_area))
 async def route_choice(callback: types.CallbackQuery):
     if callback.data == 'chelyabinsk':
         await callback.message.answer(text='Челябинская область')
+        await edit_area(area='Челябинская область', user_id=tg_user_id)
         await callback.message.answer(
             text=mes_data['route_choice'],
             reply_markup=get_route_mk(city='chelyabinsk').as_markup()
         )
     else:
         await callback.message.answer(text='Курганская область')
+        await edit_area(area='Курганская область', user_id=tg_user_id)
         await callback.message.answer(
             text=mes_data['route_choice'],
             reply_markup=get_route_mk(city='kurgan').as_markup()
@@ -124,25 +133,20 @@ async def road_deficiencies(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.in_(callback_type_road_deficiencies))
 async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
-    markup = InlineKeyboardBuilder()
-    markup.add(types.InlineKeyboardButton(
-        text='Пропустить этап',
-        callback_data='cansel'
-    )
-    )
-    await callback.message.answer(
-        text=mes_data['photo_road_deficiencies'],
-        reply_markup=markup.as_markup()
-    )
+    await callback.message.answer(text=mes_data['photo_road_deficiencies'])
     await state.set_state(ProfileStatesGroup.input_photo)  # вешаем cтатус ожидания фото
 
 
-@dp.callback_query(
-    F.photo or F.data == 'cansel',
-    ProfileStatesGroup.input_photo)
-async def locate_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(text=mes_data['locate_road_deficiencies'])
+@dp.message(F.photo, ProfileStatesGroup.input_photo)
+async def locate_road_deficiencies(message: types.Message, state: FSMContext):
+    await message.answer(text=mes_data['locate_road_deficiencies'])
     await state.set_state(ProfileStatesGroup.input_location)  # вешаем статус ожидания геолокации
+
+
+@dp.message(F.location, ProfileStatesGroup.input_location)
+async def end_road_deficiencies(message: types.Message, state: FSMContext):
+    await message.answer(text=mes_data['end_road_deficiencies'])
+    await state.clear()
 
 
 async def main():

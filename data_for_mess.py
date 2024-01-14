@@ -60,6 +60,9 @@ data_for_mess = {
     "locate_road_deficiencies": """
     Осталось отправить геолокацию недостатка дороги:
     """,
+    "end_road_deficiencies": """
+    Спасибо! Мы учтем эту информацию
+    """
 }
 
 with open('data_for_mess.json', 'w') as file:
