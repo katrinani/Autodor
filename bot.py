@@ -1,11 +1,11 @@
-import aiogram
+# import aiogram
 import asyncio
 import json
 
 from aiogram import F, Bot, types, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 # from aiogram.enums import ParseMode
 
@@ -28,7 +28,10 @@ callback_route = [
     'route_kurgan_3',
     'route_kurgan_4'
 ]
-callback_type_road_deficiencies = ['type_1', 'type_2', 'type_3', 'type_4']
+
+callback_type_road_deficiencies = [f'type_for_choose_{i + 1}' for i in range(9)]
+callback_type_deficiencies = [f'type_for_help_{i + 1}' for i in range(9)]
+callback_continue_or_return = ['continue', 'return']
 
 
 class ProfileStatesGroup(StatesGroup):
@@ -45,6 +48,18 @@ def get_route_mk(city):
             callback_data=f'route_{city}_{i + 1}'
         )
         markup.row(btn)   # заносится по 1 кнопке на ряд
+    return markup
+
+
+def types_deficiencies(purpose):
+    markup = InlineKeyboardBuilder()
+    for i in range(9):
+        btn = types.InlineKeyboardButton(
+            text=mes_data['type_road_deficiencies'][i],
+            callback_data=f'type_{purpose}{i + 1}'
+        )
+        markup.add(btn)
+    markup.adjust(2, 1, 2, 2, 2)
     return markup
 
 
@@ -95,7 +110,7 @@ async def choose_action(callback: types.CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == 'report')
+@dp.callback_query(F.data == 'report' or Command('report'))
 async def choose_report(callback: types.CallbackQuery):
     markup = InlineKeyboardBuilder()
     for i in range(4):
@@ -118,17 +133,47 @@ async def traffic_accident(callback: types.CallbackQuery):
 @dp.callback_query(F.data == 'option_2')
 async def road_deficiencies(callback: types.CallbackQuery):
     await callback.message.answer(text=mes_data['road_deficiencies'])
-    markup = InlineKeyboardBuilder()
-    for i in range(4):
-        btn = types.InlineKeyboardButton(
-            text=mes_data['type_road_deficiencies'][i],
-            callback_data=f'type_{i + 1}'
-        )
-        markup.row(btn)
+    markup = types_deficiencies(purpose='for_choose_')
+    btn = types.InlineKeyboardButton(text='Помощь', callback_data='help')
+    markup.row(btn)
     await callback.message.answer(
         text=mes_data['text_for_type_road_deficiencies'],
         reply_markup=markup.as_markup()
     )
+
+
+@dp.callback_query(F.data == 'help')
+async def road_deficiencies(callback: types.CallbackQuery):
+    await callback.message.answer(
+        text=mes_data['text_for_help_type'],
+        reply_markup=types_deficiencies(purpose='for_help_').as_markup()
+    )
+
+
+
+@dp.callback_query(F.data.in_(callback_type_deficiencies))
+async def description_road_deficiencies(callback: types.CallbackQuery):
+    for i in range(9):
+        if callback.data == f'type_for_help_{i + 1}':
+            markup = InlineKeyboardBuilder()
+            btn1 = types.InlineKeyboardButton(text='Продолжить поиск', callback_data='continue')
+            btn2 = types.InlineKeyboardButton(text='Вернуться к выбору', callback_data='return')
+            markup.row(btn1, btn2)
+            await callback.message.answer(
+                text=mes_data['type_definitions'][i],
+                reply_markup=markup.as_markup()
+            )
+    global mes_id
+    mes_id = str(callback.message.message_id)
+
+
+@dp.callback_query(F.data.in_(callback_continue_or_return))
+async def continue_or_return(callback: types.CallbackQuery):
+    if callback.data == 'continue':  # удалить сообщение с типом
+        await bot.delete_message(chat_id=tg_user_id, message_id=callback.message.message_id)
+    elif callback.data == 'return':  # удалить сообщения с типом и помощью
+        await bot.delete_messages(chat_id=tg_user_id,
+                                  message_ids=[callback.message.message_id, mes_id])
 
 
 @dp.callback_query(F.data.in_(callback_type_road_deficiencies))
@@ -139,7 +184,13 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
 
 @dp.message(F.photo, ProfileStatesGroup.input_photo)
 async def locate_road_deficiencies(message: types.Message, state: FSMContext):
-    await message.answer(text=mes_data['locate_road_deficiencies'])
+    kb = [[types.KeyboardButton(text="Отправить локацию", request_location=True)]]
+    markup = types.ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder='Отправьте геолокацию')
+    await message.answer(text=mes_data['locate_road_deficiencies'], reply_markup=markup)
     await state.set_state(ProfileStatesGroup.input_location)  # вешаем статус ожидания геолокации
 
 
@@ -147,6 +198,10 @@ async def locate_road_deficiencies(message: types.Message, state: FSMContext):
 async def end_road_deficiencies(message: types.Message, state: FSMContext):
     await message.answer(text=mes_data['end_road_deficiencies'])
     await state.clear()
+
+
+# @dp.callback_query(F.data == 'option_3')
+# async def illegal_acts(callback: types.CallbackQuery):
 
 
 async def main():
