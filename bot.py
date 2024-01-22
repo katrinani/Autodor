@@ -7,15 +7,18 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
-# from aiogram.enums import ParseMode
+from aiogram.enums import ParseMode
 
-from db_map import db_start, create_profile, edit_area
+from db_map import db_start, create_profile, edit_route, edit_location
 
 bot = Bot(token='6747593068:AAGdf7qZtm5ptYQ8FShElqKnkcZRZxiWGlA')
 dp = Dispatcher()
 
 with open('data_for_mess.json', 'r') as json_file:
     mes_data = json.load(json_file)
+
+with open('data_for_recognize.json', 'r') as json_file:
+    recognize_data = json.load(json_file)
 
 callback_area = ['chelyabinsk', 'kurgan']
 callback_route = [
@@ -28,7 +31,7 @@ callback_route = [
     'route_kurgan_3',
     'route_kurgan_4'
 ]
-
+callback_route_for_post = ['М-5', 'А-310', 'Р-254', 'Р-354']
 callback_type_road_deficiencies = [f'type_for_choose_{i + 1}' for i in range(9)]
 callback_type_deficiencies = [f'type_for_help_{i + 1}' for i in range(9)]
 callback_continue_or_return = ['continue', 'return']
@@ -40,12 +43,12 @@ class ProfileStatesGroup(StatesGroup):
 
 
 # функция создания клавитатуры из 4 рядов по 1 кнопке
-def get_route_mk(city):
+def get_route_mk(city, count):
     markup = InlineKeyboardBuilder()
-    for i in range(4):
+    for i in range(count):
         btn = types.InlineKeyboardButton(
             text=mes_data[f'route_{city}'][i],
-            callback_data=f'route_{city}_{i + 1}'
+            callback_data=mes_data[f'route_callback_{city}'][i]
         )
         markup.row(btn)   # заносится по 1 кнопке на ряд
     return markup
@@ -84,22 +87,24 @@ async def choice_of_area(message: types.Message):
 async def route_choice(callback: types.CallbackQuery):
     if callback.data == 'chelyabinsk':
         await callback.message.answer(text='Челябинская область')
-        await edit_area(area='Челябинская область', user_id=tg_user_id)
         await callback.message.answer(
             text=mes_data['route_choice'],
-            reply_markup=get_route_mk(city='chelyabinsk').as_markup()
+            reply_markup=get_route_mk(count=3, city='chelyabinsk').as_markup()
         )
     else:
         await callback.message.answer(text='Курганская область')
-        await edit_area(area='Курганская область', user_id=tg_user_id)
         await callback.message.answer(
             text=mes_data['route_choice'],
-            reply_markup=get_route_mk(city='kurgan').as_markup()
+            reply_markup=get_route_mk(count=2, city='kurgan').as_markup()
         )
 
 
-@dp.callback_query(F.data.in_(callback_route))  # обрабатываются все колбэки, кроме конкретных
-async def choose_action(callback: types.CallbackQuery):
+@dp.callback_query(F.data.in_(callback_route_for_post))
+async def route_for_post(callback: types.CallbackQuery):
+    # db
+    route = callback.data
+    await edit_route(route=route, user_id=tg_user_id)
+
     markup = InlineKeyboardBuilder()
     btn1 = types.InlineKeyboardButton(text='Сообщить', callback_data='report')
     btn2 = types.InlineKeyboardButton(text='Узнать', callback_data='recognize')
@@ -110,7 +115,7 @@ async def choose_action(callback: types.CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == 'report' or Command('report'))
+@dp.callback_query(F.data == 'report')
 async def choose_report(callback: types.CallbackQuery):
     markup = InlineKeyboardBuilder()
     for i in range(4):
@@ -150,7 +155,6 @@ async def road_deficiencies(callback: types.CallbackQuery):
     )
 
 
-
 @dp.callback_query(F.data.in_(callback_type_deficiencies))
 async def description_road_deficiencies(callback: types.CallbackQuery):
     for i in range(9):
@@ -184,7 +188,7 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
 
 @dp.message(F.photo, ProfileStatesGroup.input_photo)
 async def locate_road_deficiencies(message: types.Message, state: FSMContext):
-    kb = [[types.KeyboardButton(text="Отправить локацию", request_location=True)]]
+    kb = [[types.KeyboardButton(text="Отправить нынешнюю локацию", request_location=True)]]
     markup = types.ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
@@ -196,12 +200,32 @@ async def locate_road_deficiencies(message: types.Message, state: FSMContext):
 
 @dp.message(F.location, ProfileStatesGroup.input_location)
 async def end_road_deficiencies(message: types.Message, state: FSMContext):
+    longitude = message.location.longitude
+    latitude = message.location.latitude
+    await edit_location(longitude=longitude, latitude=latitude, user_id=tg_user_id)
     await message.answer(text=mes_data['end_road_deficiencies'])
     await state.clear()
 
 
-# @dp.callback_query(F.data == 'option_3')
-# async def illegal_acts(callback: types.CallbackQuery):
+# ---------------------------------------------------------------------------------------------
+@dp.callback_query(F.data == 'recognize')
+async def choose_que(callback: types.CallbackQuery):
+    markup = InlineKeyboardBuilder()
+    for i in range(7):
+        btn = types.InlineKeyboardButton(
+            text=recognize_data['questions_for_recognize'][i],
+            callback_data=f'type_{i + 1}'
+        )
+        markup.row(btn)
+    await callback.message.answer(text=recognize_data['recognize'], reply_markup=markup.as_markup())
+
+
+@dp.callback_query(F.data == 'type_2')
+async def gas_station(callback: types.CallbackQuery):
+    await callback.message.answer('Вот возможные места заправки')
+    # await callback.message.answer(recognize_data['link'], parse_mode='HTML')
+    # await bot.send_location(longitude=23.66854, latitude=73.86648, chat_id=tg_user_id)
+    await callback.message.answer_location(longitude=[12.353, 13.4657, 14.3636], latitude=[13])
 
 
 async def main():
