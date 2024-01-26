@@ -13,9 +13,11 @@ data_for_mess = {
         "Что интересного есть по пути?",
         "Куда звонить в экстренной ситуации?",
     ],
-    "link": """
-    <iframe src="https://yandex.ru/map-widget/v1/?um=constructor%3A9ce229d45f3f0b61769a93b986517dd\
-    a8e2753bd0ec478665b3285d3b65aa0b4&amp;source=constructor" width="500" height="400" frameborder="0"></iframe>
+    "start_and_send_location": """
+    Понял! Для этого вам нужно отправить свою нынешнюю локацию
+    """,
+    "choose_gas_station": """
+    Отлично. Теперь выберите удобное для Вас место заправки:
     """
 
 }
