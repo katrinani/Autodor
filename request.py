@@ -1,19 +1,19 @@
 import requests
-import asyncio
 
 
-async def post_request_for_road_deficiencie(road_name, x, y) -> bool:
+async def post_request_for_road_deficiencies(road_name, x, y):
     url = f'http://192.168.100.5:5137/api/roads/{road_name}/unverified'
     location = {'x': x, 'y': y, 'roadName': ''}
     response = requests.post(url, json=location)
-    status = response.status_code == requests.codes.ok
-    return status
+    return response.json()
 
 
-async def post_request_for_photo(road_name, img) -> bool:
-    url = f'http://192.168.100.5:5137/api/roads/{road_name}/unverified'
-    location = {'x': x, 'y': y, 'roadName': ''}
-    response = requests.post(url, json=location)
+async def post_request_for_photo(file_id, point_id):
+    url = f'http://192.168.100.5:5137/api/files/unverified/{point_id}'
+    fp = open(f'{file_id}.jpg', 'rb')
+    files = {'formFile': (f'{file_id}.jpg', fp, 'multipart/form-data', {})}
+    response = requests.post(url, files=files)
+    fp.close()
     status = response.status_code == requests.codes.ok
     return status
 
