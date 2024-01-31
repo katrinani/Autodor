@@ -248,7 +248,7 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_gas_station
-    list_gas_station = await get_request_for_map(road_name=route, x=latitude, y=longitude)  # get запрос
+    list_gas_station = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
 
     await message.answer(recognize_data['choose_gas_station'])
     markup = InlineKeyboardBuilder()
@@ -273,8 +273,8 @@ async def send_gas_station(callback: types.CallbackQuery):
     await callback.message.answer(text=list_gas_station['gasStations'][int(callback.data[9])]['name'])
     await bot.send_location(
         chat_id=callback.message.chat.id,
-        longitude=list_gas_station['gasStations'][int(callback.data[9])]['x'],
-        latitude=list_gas_station['gasStations'][int(callback.data[9])]['y']
+        longitude=list_gas_station['gasStations'][int(callback.data[9])]['y'],
+        latitude=list_gas_station['gasStations'][int(callback.data[9])]['x']
     )
 
 
