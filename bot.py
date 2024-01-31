@@ -31,7 +31,7 @@ callback_route = [
     'route_kurgan_3',
     'route_kurgan_4'
 ]
-callback_route_for_post = ['М-5', 'А-310', 'Р-254', 'Р-354', 'Тест']
+callback_route_for_post = ['М-5', 'А-310', 'Р-254', 'Р-354']
 callback_type_road_deficiencies = [f'type_for_choose_{i + 1}' for i in range(9)]
 callback_type_deficiencies = [f'type_for_help_{i + 1}' for i in range(9)]
 callback_continue_or_return = ['continue', 'return']
@@ -248,7 +248,7 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_gas_station
-    list_gas_station = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
+    list_gas_station = await get_request_for_map(road_name=route, x=latitude, y=longitude)  # get запрос
 
     await message.answer(recognize_data['choose_gas_station'])
     markup = InlineKeyboardBuilder()
