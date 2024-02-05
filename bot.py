@@ -109,11 +109,11 @@ async def route_for_post(callback: types.CallbackQuery):
     global route
     route = callback.data
 
-    answer = await get_request_urgent_message(road_name=route)
-    if answer == 'None':
-        await callback.message.answer(text=mes_data['good_situation'])
-    else:
-        await callback.message.answer(answer[''])
+    # answer = await get_request_urgent_message(road_name=route)
+    # if answer == 'None':
+    #     await callback.message.answer(text=mes_data['good_situation'])
+    # else:
+    #     await callback.message.answer(answer[''])
 
     markup = InlineKeyboardBuilder()
     btn1 = types.InlineKeyboardButton(text='Сообщить', callback_data='report')
@@ -244,11 +244,6 @@ async def choose_que(callback: types.CallbackQuery):
     await callback.message.answer(text=recognize_data['recognize'], reply_markup=markup.as_markup())
 
 
-# @dp.callback_query(F.data == 'type_1')
-# async def places_to_eat(callback: types.CallbackQuery):
-#
-
-
 @dp.callback_query(F.data == 'type_2')
 async def gas_station(callback: types.CallbackQuery, state: FSMContext):
     kb = [[types.KeyboardButton(text="Отправить нынешнюю локацию", request_location=True)]]
@@ -283,7 +278,7 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     for i in range(10):
         name_gas_station = list_gas_station['gasStations'][i]['name']
         distance_gas_station = list_gas_station['gasStations'][i]['s']
-        text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
+        text += f"{i + 1}. {name_gas_station}\n"  #  : {distance_gas_station}км. от вас
 
     await message.answer(text=text, reply_markup=markup.as_markup())
     await state.clear()
