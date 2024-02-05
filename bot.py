@@ -9,9 +9,17 @@ from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
-from request import post_request_for_road_deficiencies, get_request_for_map, post_request_for_photo
+from request import (
+    post_request_for_road_deficiencies,
+    get_request_for_map,
+    post_request_for_photo,
+    get_request_urgent_message
+)
 
-bot = Bot(token='6747593068:AAGdf7qZtm5ptYQ8FShElqKnkcZRZxiWGlA')
+with open('toc.json', 'r') as json_file:
+    inf_toc = json.load(json_file)
+
+bot = Bot(token=inf_toc['token'])
 dp = Dispatcher()
 
 with open('data_for_mess.json', 'r') as json_file:
@@ -100,6 +108,12 @@ async def route_choice(callback: types.CallbackQuery):
 async def route_for_post(callback: types.CallbackQuery):
     global route
     route = callback.data
+
+    answer = await get_request_urgent_message(road_name=route)
+    if answer == 'None':
+        await callback.message.answer(text=mes_data['good_situation'])
+    else:
+        await callback.message.answer(answer[''])
 
     markup = InlineKeyboardBuilder()
     btn1 = types.InlineKeyboardButton(text='Сообщить', callback_data='report')
@@ -230,6 +244,11 @@ async def choose_que(callback: types.CallbackQuery):
     await callback.message.answer(text=recognize_data['recognize'], reply_markup=markup.as_markup())
 
 
+# @dp.callback_query(F.data == 'type_1')
+# async def places_to_eat(callback: types.CallbackQuery):
+#
+
+
 @dp.callback_query(F.data == 'type_2')
 async def gas_station(callback: types.CallbackQuery, state: FSMContext):
     kb = [[types.KeyboardButton(text="Отправить нынешнюю локацию", request_location=True)]]
@@ -262,7 +281,9 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
 
     text = ''
     for i in range(10):
-        text += f"{i + 1}. {list_gas_station['gasStations'][i]['name']} \n"
+        name_gas_station = list_gas_station['gasStations'][i]['name']
+        distance_gas_station = list_gas_station['gasStations'][i]['s']
+        text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
 
     await message.answer(text=text, reply_markup=markup.as_markup())
     await state.clear()

@@ -1,6 +1,13 @@
 import requests
 
 
+async def get_request_urgent_message(road_name):
+    url = f'http://backend/api/roads/{road_name}'
+    road = {'roadName': ''}
+    response = requests.get(url, params=road)
+    return response.json()
+
+
 async def post_request_for_road_deficiencies(road_name, x, y):
     url = f'http://backend/api/roads/{road_name}/unverified'
     location = {'x': x, 'y': y, 'roadName': ''}
