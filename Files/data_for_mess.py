@@ -110,5 +110,5 @@ data_for_mess = {
 
 }
 
-with open('data_for_mess.json', 'w') as file:
+with open('../base/data_for_mess.json', 'w') as file:
     json.dump(data_for_mess, file)
