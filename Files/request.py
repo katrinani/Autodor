@@ -2,7 +2,7 @@ import requests
 
 
 async def get_request_urgent_message(road_name):
-    url = f'http://backend/api/roads/{road_name}'
+    url = f'http://backend/api/roads/{road_name}/'
     road = {'roadName': ''}
     response = requests.get(url, params=road)
     return response.json()
