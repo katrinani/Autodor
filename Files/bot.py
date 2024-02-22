@@ -10,10 +10,10 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from request import (
-    post_request_for_road_deficiencies,
     get_request_for_map,
-    post_request_for_photo,
-    get_request_urgent_message
+    post_request_media,
+    get_request_urgent_message,
+    post_request_location_and_description
 )
 
 with open('toc.json', 'r') as json_file:
@@ -174,9 +174,14 @@ async def end_road_deficiencies(message: types.Message, state: FSMContext):
     # post запрос
     longitude = message.location.longitude
     latitude = message.location.latitude
-    post_result = await post_request_for_road_deficiencies(road_name=route, x=longitude, y=latitude)
-    global point_id
-    point_id = post_result['addedPointId']
+    post_result = await post_request_location_and_description(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        type_road='RoadDisadvantages'
+    )
+    global point_id_for_road_deficiencies
+    point_id_for_road_deficiencies = post_result['addedPointId']
 
     markup = types_deficiencies(purpose='for_choose_')
     btn = types.InlineKeyboardButton(text='Помощь', callback_data='help')
@@ -197,7 +202,11 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
 @dp.message(F.photo, ProfileStatesGroup.input_photo)
 async def locate_road_deficiencies(message: types.Message, state: FSMContext):
     await bot.download(message.photo[-1], destination=f'{message.photo[-1].file_id}.jpg')
-    status = await post_request_for_photo(file_id=message.photo[-1].file_id, point_id=point_id)
+    status = await post_request_media(
+        file_id=message.photo[-1].file_id,
+        point_id=point_id_for_road_deficiencies,
+        type_media='jpg'
+     )
     if status:
         await message.answer(mes_data['end_road_deficiencies'])
         await state.clear()
@@ -251,14 +260,29 @@ async def illegal_actions(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(F.location, ProfileStatesGroup.input_location)
 async def input_description(message: types.Message, state: FSMContext):
-    # обработка геолокации
+    global locate
+    locate = [message.location.longitude, message.location.latitude]
+
     await message.answer(text=mes_data['action_description'])
     await state.set_state(ProfileStatesGroup.input_description)
 
 
 @dp.message(F.text, ProfileStatesGroup.input_description)
 async def input_photo_or_video(message: types.Message, state: FSMContext):
-    # обработка пришедшего описания
+    # post запрос
+    description = message.text
+    longitude = locate[0]
+    latitude = locate[1]
+    post_result = await post_request_location_and_description(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        description=description,
+        type_road='ThirdPartyIllegalActions'
+    )
+    global point_id_for_illegal_actions
+    point_id_for_illegal_actions = post_result['addedPointId']
+
     await message.answer(text=mes_data['media_of_illegal_actions'])
     await state.set_state(ProfileStatesGroup.input_photo)
 
@@ -268,10 +292,33 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
     if message.photo:
         await bot.download(message.photo[-1], destination=f'{message.photo[-1].file_id}.jpg')
         # обработка фото
+        status = await post_request_media(
+            file_id=message.photo[-1].file_id,
+            point_id=point_id_for_illegal_actions,
+            type_media='jpg'
+        )
+        if status:
+            await message.answer(mes_data['end_road_deficiencies'])
+            await state.clear()
+        else:
+            await message.answer('Хмм что-то пошло не так, попробуйте отправить еще раз')
+            await state.set_state(ProfileStatesGroup.input_photo)
         os.remove(f'{message.photo[-1].file_id}.jpg')
+
     elif message.video:
         await bot.download(message.video, destination=f'{message.video.file_id}.mp4')
         # обработка видео
+        status = await post_request_media(
+            file_id=message.video.file_id,
+            point_id=point_id_for_illegal_actions,
+            type_media='mp4'
+        )
+        if status:
+            await message.answer(mes_data['end_road_deficiencies'])
+            await state.clear()
+        else:
+            await message.answer('Хмм что-то пошло не так, попробуйте отправить еще раз')
+            await state.set_state(ProfileStatesGroup.input_photo)
         os.remove(f'{message.video.file_id}.mp4')
 
     await state.clear()

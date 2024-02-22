@@ -8,17 +8,33 @@ async def get_request_urgent_message(road_name):
     return response.json()
 
 
-async def post_request_for_road_deficiencies(road_name, x, y):
+async def post_request_location_and_description(
+        road_name: str,
+        longitude: float,
+        latitude: float,
+        type_road: str,
+        description: str = None
+):
     url = f'http://backend/api/roads/{road_name}/unverified'
-    location = {'x': x, 'y': y, 'roadName': ''}
-    response = requests.post(url, json=location)
+    data = {
+        'point': {
+            'description': description,
+            'type': type_road,
+            'coordinates': {
+                'longitude': longitude,
+                'latitude': latitude,
+            }
+        },
+        'roadName': road_name
+    }
+    response = requests.post(url, json=data)
     return response.json()
 
 
-async def post_request_for_photo(file_id, point_id):
+async def post_request_media(file_id, point_id, type_media):
     url = f'http://backend/api/files/unverified/{point_id}'
-    fp = open(f'{file_id}.jpg', 'rb')
-    files = {'formFile': (f'{file_id}.jpg', fp, 'multipart/form-data', {})}
+    fp = open(f'{file_id}.{type_media}', 'rb')
+    files = {'formFile': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
     response = requests.post(url, files=files)
     fp.close()
     status = response.status_code == requests.codes.ok
