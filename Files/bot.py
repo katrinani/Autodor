@@ -10,10 +10,10 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from request import (
-    get_request_for_map,
+    get_request_for_dots,
     post_request_media,
-    get_request_urgent_message,
-    post_request_location_and_description
+    post_request_location_and_description,
+    get_request_urgent_message
 )
 
 with open('toc.json', 'r') as json_file:
@@ -350,11 +350,18 @@ async def choose_meal(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_meal
-    list_meal = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
+    list_meal = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='Cafes'
+    )  # get запрос
+
+    count = len(list_meal['points'])  # сколько пришло точек
 
     await message.answer(recognize_data['choose_meal'])
     markup = InlineKeyboardBuilder()
-    for i in range(10):
+    for i in range(count):
         btn = types.InlineKeyboardButton(
             text=str(i + 1),
             callback_data=f'location_meal_{i}'
@@ -363,9 +370,9 @@ async def choose_meal(message: types.Message, state: FSMContext):
     markup.adjust(5, 5)
 
     text = ''
-    for i in range(10):
-        name_meal = list_meal['meal'][i]['name']
-        distance_meal = list_meal['meal'][i]['s']
+    for i in range(count):
+        name_meal = list_meal['points'][i]['name']
+        distance_meal = round(list_meal['distancesFromUser'][i], 2)
         text += f"{i + 1}. {name_meal} : {distance_meal}км. от вас"
 
     await message.answer(text=text, reply_markup=markup.as_markup())
@@ -374,11 +381,11 @@ async def choose_meal(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data.in_(callback_map_for_meal))
 async def send_meal(callback: types.CallbackQuery):
-    await callback.message.answer(text=list_meal['meal'][int(callback.data[9])]['name'])
+    await callback.message.answer(text=list_meal['points'][int(callback.data[9])]['name'])
     await bot.send_location(
         chat_id=callback.message.chat.id,
-        longitude=list_meal['meal'][int(callback.data[9])]['y'],
-        latitude=list_meal['meal'][int(callback.data[9])]['x']
+        longitude=list_meal['points'][int(callback.data[9])]['longitude'],
+        latitude=list_meal['points'][int(callback.data[9])]['latitude']
     )
 
 
@@ -395,11 +402,17 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_gas_station
-    list_gas_station = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
+    list_gas_station = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='GasStations'
+    )
+    count = len(list_gas_station['points'])  # сколько пришло точек
 
     await message.answer(recognize_data['choose_gas_station'])
     markup = InlineKeyboardBuilder()
-    for i in range(10):
+    for i in range(count):
         btn = types.InlineKeyboardButton(
             text=str(i + 1),
             callback_data=f'location_gas_station_{i}'
@@ -408,9 +421,9 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     markup.adjust(5, 5)
 
     text = ''
-    for i in range(10):
-        name_gas_station = list_gas_station['gasStations'][i]['name']
-        distance_gas_station = list_gas_station['gasStations'][i]['s']
+    for i in range(count):
+        name_gas_station = list_gas_station['points'][i]['name']
+        distance_gas_station = round(list_gas_station['distancesFromUser'][i], 2)
         text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас"
 
     await message.answer(text=text, reply_markup=markup.as_markup())
@@ -419,11 +432,11 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data.in_(callback_map_for_gas_station))
 async def send_gas_station(callback: types.CallbackQuery):
-    await callback.message.answer(text=list_gas_station['gasStations'][int(callback.data[9])]['name'])
+    await callback.message.answer(text=list_gas_station['points'][int(callback.data[9])]['name'])
     await bot.send_location(
         chat_id=callback.message.chat.id,
-        longitude=list_gas_station['gasStations'][int(callback.data[9])]['y'],
-        latitude=list_gas_station['gasStations'][int(callback.data[9])]['x']
+        longitude=list_gas_station['points'][int(callback.data[9])]['longitude'],
+        latitude=list_gas_station['points'][int(callback.data[9])]['latitude']
     )
 
 
@@ -440,11 +453,18 @@ async def choose_car_service(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_car_service
-    list_car_service = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
+    list_car_service = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='CarServices'
+    )
+
+    count = len(list_car_service['points'])  # сколько пришло точек
 
     await message.answer(recognize_data['choose_car_service'])
     markup = InlineKeyboardBuilder()
-    for i in range(10):
+    for i in range(count):
         btn = types.InlineKeyboardButton(
             text=str(i + 1),
             callback_data=f'location_car_service_{i}'
@@ -453,9 +473,9 @@ async def choose_car_service(message: types.Message, state: FSMContext):
     markup.adjust(5, 5)
 
     text = ''
-    for i in range(10):
-        name_car_service = list_car_service['car_service'][i]['name']
-        distance_car_service = list_car_service['car_service'][i]['s']
+    for i in range(count):
+        name_car_service = list_car_service['points'][i]['name']
+        distance_car_service = round(list_car_service['distancesFromUser'][i], 2)
         text += f"{i + 1}. {name_car_service} : {distance_car_service}км. от вас"
 
     await message.answer(text=text, reply_markup=markup.as_markup())
@@ -464,11 +484,11 @@ async def choose_car_service(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data.in_(callback_map_for_car_service))
 async def send_car_service(callback: types.CallbackQuery):
-    await callback.message.answer(text=list_car_service['car_service'][int(callback.data[9])]['name'])
+    await callback.message.answer(text=list_car_service['points'][int(callback.data[9])]['name'])
     await bot.send_location(
         chat_id=callback.message.chat.id,
-        longitude=list_car_service['car_service'][int(callback.data[9])]['y'],
-        latitude=list_car_service['car_service'][int(callback.data[9])]['x']
+        longitude=list_car_service['points'][int(callback.data[9])]['longitude'],
+        latitude=list_car_service['points'][int(callback.data[9])]['latitude']
     )
 
 
@@ -485,11 +505,18 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_parking_lot
-    list_parking_lot = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
+    list_parking_lot = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='RestPlaces'
+    )
+
+    count = len(list_parking_lot['points'])  # сколько пришло точек
 
     await message.answer(recognize_data['choose_parking_lot'])
     markup = InlineKeyboardBuilder()
-    for i in range(10):
+    for i in range(count):
         btn = types.InlineKeyboardButton(
             text=str(i + 1),
             callback_data=f'location_parking_lot_{i}'
@@ -498,9 +525,9 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     markup.adjust(5, 5)
 
     text = ''
-    for i in range(10):
-        name_parking_lot = list_parking_lot['parking_lot'][i]['name']
-        distance_parking_lot = list_parking_lot['parking_lot'][i]['s']
+    for i in range(count):
+        name_parking_lot = list_parking_lot['points'][i]['name']
+        distance_parking_lot = round(list_parking_lot['distancesFromUser'][i], 2)
         text += f"{i + 1}. {name_parking_lot} : {distance_parking_lot}км. от вас"
 
     await message.answer(text=text, reply_markup=markup.as_markup())
@@ -509,11 +536,11 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data.in_(callback_map_for_parking_lot))
 async def send_parking_lot(callback: types.CallbackQuery):
-    await callback.message.answer(text=list_parking_lot['parking_lot'][int(callback.data[9])]['name'])
+    await callback.message.answer(text=list_parking_lot['points'][int(callback.data[9])]['name'])
     await bot.send_location(
         chat_id=callback.message.chat.id,
-        longitude=list_parking_lot['parking_lot'][int(callback.data[9])]['y'],
-        latitude=list_parking_lot['parking_lot'][int(callback.data[9])]['x']
+        longitude=list_parking_lot['points'][int(callback.data[9])]['longitude'],
+        latitude=list_parking_lot['points'][int(callback.data[9])]['latitude']
     )
 
 
@@ -575,11 +602,18 @@ async def choose_attractions(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
     global list_attractions
-    list_attractions = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
+    list_attractions = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='InterestingPlaces'
+    )
+
+    count = len(list_attractions['points'])  # сколько пришло точек
 
     await message.answer(recognize_data['choose_attractions'])
     markup = InlineKeyboardBuilder()
-    for i in range(10):
+    for i in range(count):
         btn = types.InlineKeyboardButton(
             text=str(i + 1),
             callback_data=f'location_attractions_{i}'
@@ -588,9 +622,9 @@ async def choose_attractions(message: types.Message, state: FSMContext):
     markup.adjust(5, 5)
 
     text = ''
-    for i in range(10):
-        name_attractions = list_attractions['attractions'][i]['name']
-        distance_attractions = list_attractions['attractions'][i]['s']
+    for i in range(count):
+        name_attractions = list_attractions['points'][i]['name']
+        distance_attractions = round(list_attractions['distancesFromUser'][i], 2)
         text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас "
 
     await message.answer(text=text, reply_markup=markup.as_markup())
@@ -599,11 +633,11 @@ async def choose_attractions(message: types.Message, state: FSMContext):
 
 @dp.callback_query(F.data.in_(callback_map_for_attractions))
 async def send_attractions(callback: types.CallbackQuery):
-    await callback.message.answer(text=list_attractions['attractions'][int(callback.data[9])]['name'])
+    await callback.message.answer(text=list_attractions['points'][int(callback.data[9])]['name'])
     await bot.send_location(
         chat_id=callback.message.chat.id,
-        longitude=list_attractions['attractions'][int(callback.data[9])]['y'],
-        latitude=list_attractions['attractions'][int(callback.data[9])]['x']
+        longitude=list_attractions['points'][int(callback.data[9])]['longitude'],
+        latitude=list_attractions['points'][int(callback.data[9])]['latitude']
     )
 
 

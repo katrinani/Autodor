@@ -8,6 +8,7 @@ async def get_request_urgent_message(road_name):
     return response.json()
 
 
+# ветка "сообщить" ---------------------------------------------
 async def post_request_location_and_description(
         road_name: str,
         longitude: float,
@@ -41,8 +42,19 @@ async def post_request_media(file_id, point_id, type_media):
     return status
 
 
-async def get_request_for_map(road_name, x, y):
-    url = f'http://backend/api/roads/{road_name}/gasStations'
-    location = {'x': x, 'y': y, 'roadName': ''}
-    response = requests.get(url, params=location)
+# ветка "узнать" --------------------------------------------------
+async def get_request_for_dots(
+        road_name: str,
+        longitude: float,
+        latitude: float,
+        point_type: str
+):
+    url = f'http://backend/api/roads/{road_name}/{point_type}'
+    data = {
+        'Coordinates': {
+            'longitude': longitude,
+            'latitude': latitude,
+        }
+    }
+    response = requests.get(url, params=data)
     return response.json()
