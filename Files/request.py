@@ -1,7 +1,9 @@
 import requests
 
 
-async def get_request_urgent_message(road_name):
+async def get_request_urgent_message(
+        road_name: str
+):
     url = f'http://backend/api/roads/{road_name}/'
     road = {'roadName': ''}
     response = requests.get(url, params=road)
@@ -32,7 +34,11 @@ async def post_request_location_and_description(
     return response.json()
 
 
-async def post_request_media(file_id, point_id, type_media):
+async def post_request_media(
+        file_id: str,
+        point_id: str,
+        type_media: str
+) -> bool:
     url = f'http://backend/api/files/unverified/{point_id}'
     fp = open(f'{file_id}.{type_media}', 'rb')
     files = {'formFile': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
