@@ -4,7 +4,7 @@ import requests
 async def get_request_urgent_message(
         road_name: str
 ):
-    url = f'http://192.168.100.5:5137/api/roads/{road_name}/advertisements'
+    url = f'http://backend/api/roads/{road_name}/advertisements'
     response = requests.get(url)
     return response.json()
 
@@ -17,7 +17,7 @@ async def post_request_location_and_description(
         type_road: str,
         description: str = None
 ):
-    url = f'http://192.168.100.5:5137/api/roads/{road_name}/unverified'
+    url = f'http://backend/api/roads/{road_name}/unverified'
     data = {
         'point': {
             'description': description,
@@ -38,7 +38,7 @@ async def post_request_media(
         point_id: str,
         type_media: str
 ) -> bool:
-    url = f'http://192.168.100.5:5137/api/files/unverified/{point_id}'
+    url = f'http://backend/api/files/unverified/{point_id}'
     fp = open(f'{file_id}.{type_media}', 'rb')
     files = {'formFile': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
     response = requests.post(url, files=files)
@@ -54,7 +54,7 @@ async def get_request_for_dots(
         latitude: float,
         point_type: str
 ):
-    url = f'http://192.168.100.5:5137/api/roads/{road_name}/{point_type}'
+    url = f'http://backend/api/roads/{road_name}/{point_type}'
     data = {
         'Coordinates.Longitude': longitude,
         'Coordinates.Latitude': latitude
