@@ -6,4 +6,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 WORKDIR /usr/src/app
 COPY . /usr/src/app
 
-CMD ["python", "./bot.py"]
+CMD ["python", "Files/bot.py"]

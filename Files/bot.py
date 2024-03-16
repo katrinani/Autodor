@@ -19,16 +19,16 @@ from request import (
 
 from map import load_map
 
-with open('toc.json', 'r') as json_file:
+with open('/usr/src/app/Files/toc.json', 'r') as json_file:
     inf_toc = json.load(json_file)
 
 bot = Bot(token=inf_toc['token'])
 dp = Dispatcher(storage=MemoryStorage())
 
-with open('../base/data_for_mess.json', 'r') as json_file:
+with open('/usr/src/app/base/data_for_mess.json', 'r') as json_file:
     mes_data = json.load(json_file)
 
-with open('../base/data_for_recognize.json', 'r') as json_file:
+with open('/usr/src/app/base/data_for_recognize.json', 'r') as json_file:
     recognize_data = json.load(json_file)
 
 callback_area = ['chelyabinsk', 'kurgan']
