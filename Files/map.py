@@ -24,12 +24,12 @@ def load_map(
     count = len(list_dots['points'])
     for i in range(count):
         if i < (count - 1):
-            lon = list_dots['points'][i]['longitude']
-            lat = list_dots['points'][i]['latitude']
+            lon = list_dots['points'][i]['coordinates']['longitude']
+            lat = list_dots['points'][i]['coordinates']['latitude']
             map_request += lon_lat(lon=lon, lat=lat) + f',pm2{color}m{i + 1}' + '~'
         else:
-            lon = list_dots['points'][i]['longitude']
-            lat = list_dots['points'][i]['latitude']
+            lon = list_dots['points'][i]['coordinates']['longitude']
+            lat = list_dots['points'][i]['coordinates']['latitude']
             map_request += lon_lat(lon=lon, lat=lat) + f',pm2{color}m{i + 1}'
 
     response = requests.get(map_request)

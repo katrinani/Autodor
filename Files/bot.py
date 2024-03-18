@@ -523,7 +523,7 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     for i in range(count):
         name_gas_station = list_gas_station['points'][i]['name']
         distance_gas_station = round(list_gas_station['distancesFromUser'][i], 2)
-        text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас"
+        text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
     await message.answer(text=text)
 
     # вывод карты
@@ -572,7 +572,7 @@ async def choose_car_service(message: types.Message, state: FSMContext):
     for i in range(count):
         name_car_service = list_car_service['points'][i]['name']
         distance_car_service = round(list_car_service['distancesFromUser'][i], 2)
-        text += f"{i + 1}. {name_car_service} : {distance_car_service}км. от вас"
+        text += f"{i + 1}. {name_car_service} : {distance_car_service}км. от вас\n"
     await message.answer(text=text)
 
     # вывод карты
@@ -618,7 +618,7 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     for i in range(count):
         name_parking_lot = list_parking_lot['points'][i]['name']
         distance_parking_lot = round(list_parking_lot['distancesFromUser'][i], 2)
-        text += f"{i + 1}. {name_parking_lot} : {distance_parking_lot}км. от вас"
+        text += f"{i + 1}. {name_parking_lot} : {distance_parking_lot}км. от вас\n"
     await message.answer(text=text)
 
     # вывод карты
@@ -709,7 +709,7 @@ async def choose_attractions(message: types.Message, state: FSMContext):
     for i in range(count):
         name_attractions = list_attractions['points'][i]['name']
         distance_attractions = round(list_attractions['distancesFromUser'][i], 2)
-        text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас "
+        text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас\n"
     await message.answer(text=text)
     # вывод карты
     if not list_attractions:
