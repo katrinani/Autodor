@@ -2,13 +2,16 @@ import asyncio
 import json
 import os
 
-from aiogram import F, Bot, types, Dispatcher
+from aiogram import F, Bot, types, Router, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup, FSInputFile, Message
 from aiogram.filters import Command, BaseFilter
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.memory import MemoryStorage
+# from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+
+from aiohttp import web
 
 from request import (
     get_request_for_dots,
@@ -19,16 +22,21 @@ from request import (
 
 from map import load_map
 
-with open('/usr/src/app/Files/toc.json', 'r') as json_file:
-    inf_toc = json.load(json_file)
+WEB_SERVER_HOST = "0.0.0.0"
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_URL = "https://hookworm-picked-needlessly.ngrok-free.app"
 
-bot = Bot(token=inf_toc['token'])
-dp = Dispatcher(storage=MemoryStorage())
+with open('toc.json', 'r') as json_file:  # '/usr/src/app/Files/toc.json', 'r'
+    TOKEN = json.load(json_file)
 
-with open('/usr/src/app/base/data_for_mess.json', 'r') as json_file:
+# bot = Bot(token=TOKEN['token'])
+# dp = Dispatcher(storage=MemoryStorage())
+router = Router()
+
+with open('../base/data_for_mess.json', 'r') as json_file:  # '/usr/src/app/base/data_for_mess.json', 'r'
     mes_data = json.load(json_file)
 
-with open('/usr/src/app/base/data_for_recognize.json', 'r') as json_file:
+with open('../base/data_for_recognize.json', 'r') as json_file:  # '/usr/src/app/base/data_for_recognize.json', 'r'
     recognize_data = json.load(json_file)
 
 callback_area = ['chelyabinsk', 'kurgan']
@@ -137,7 +145,7 @@ def btn_to_send_loc() -> ReplyKeyboardMarkup:
     return markup
 
 
-@dp.message(Command('start'))
+@router.message(Command('start'))
 async def choice_of_area(message: types.Message):
     markup = InlineKeyboardBuilder()
     btn1 = types.InlineKeyboardButton(text='Челябинская область', callback_data='chelyabinsk')
@@ -149,7 +157,7 @@ async def choice_of_area(message: types.Message):
     )
 
 
-@dp.callback_query(F.data.in_(callback_area))
+@router.callback_query(F.data.in_(callback_area))
 async def route_choice(callback: types.CallbackQuery):
     if callback.data == 'chelyabinsk':
         await callback.message.answer(text='Челябинская область')
@@ -165,7 +173,7 @@ async def route_choice(callback: types.CallbackQuery):
         )
 
 
-@dp.callback_query(F.data.in_(callback_route_for_post))
+@router.callback_query(F.data.in_(callback_route_for_post))
 async def route_for_post(callback: types.CallbackQuery, state: FSMContext):
     route = callback.data
     # сохраняем переменные
@@ -194,7 +202,7 @@ async def route_for_post(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@dp.callback_query(F.data == 'report')
+@router.callback_query(F.data == 'report')
 async def choose_report(callback: types.CallbackQuery):
     markup = InlineKeyboardBuilder()
     for i in range(4):
@@ -209,20 +217,20 @@ async def choose_report(callback: types.CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == 'option_1')
+@router.callback_query(F.data == 'option_1')
 async def traffic_accident(callback: types.CallbackQuery):
     await callback.message.answer(text=mes_data['traffic_accident'])
 
 
 # ------------------------------------------------------
-@dp.callback_query(F.data == 'option_2')
+@router.callback_query(F.data == 'option_2')
 async def locate_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=mes_data['road_deficiencies'])
     await callback.message.answer(text=mes_data['locate_road_deficiencies'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_road_deficiencies)  # вешаем статус ожидания геолокации
 
 
-@dp.message(
+@router.message(
     F.location,
     ProfileStatesGroup.input_location_for_road_deficiencies
 )
@@ -255,7 +263,7 @@ async def end_road_deficiencies(message: types.Message, state: FSMContext):
     await state.set_state(ProfileStatesGroup.output_text_for_road_deficiencies)
 
 
-@dp.callback_query(
+@router.callback_query(
     F.data.in_(callback_type_road_deficiencies),
     ProfileStatesGroup.output_text_for_road_deficiencies
 )
@@ -264,11 +272,15 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
     await state.set_state(ProfileStatesGroup.input_photo_for_road_deficiencies)  # вешаем cтатус ожидания фото
 
 
-@dp.message(
+@router.message(
     F.photo,
     ProfileStatesGroup.input_photo_for_road_deficiencies
 )
-async def locate_road_deficiencies(message: types.Message, state: FSMContext):
+async def locate_road_deficiencies(
+        message: types.Message,
+        state: FSMContext,
+        bot: Bot
+):
     # получение id точки
     data = await state.get_data()
     point_id_for_road_deficiencies = data['id_for_road_deficiencies']
@@ -291,7 +303,7 @@ async def locate_road_deficiencies(message: types.Message, state: FSMContext):
 
 
 # помощь ----------------------------------------------------
-@dp.callback_query(F.data == 'help')
+@router.callback_query(F.data == 'help')
 async def road_deficiencies(callback: types.CallbackQuery):
     await callback.message.answer(
         text=mes_data['text_for_help_type'],
@@ -299,7 +311,7 @@ async def road_deficiencies(callback: types.CallbackQuery):
     )
 
 
-@dp.callback_query(F.data.in_(callback_type_deficiencies))
+@router.callback_query(F.data.in_(callback_type_deficiencies))
 async def description_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
     for i in range(9):
         if callback.data == f'type_for_help_{i + 1}':
@@ -317,8 +329,12 @@ async def description_road_deficiencies(callback: types.CallbackQuery, state: FS
     await state.update_data(message_id=mes_id)
 
 
-@dp.callback_query(F.data.in_(callback_continue_or_return))
-async def continue_or_return(callback: types.CallbackQuery, state: FSMContext):
+@router.callback_query(F.data.in_(callback_continue_or_return))
+async def continue_or_return(
+        callback: types.CallbackQuery,
+        state: FSMContext,
+        bot: Bot
+):
     # получение id сообщения
     data = await state.get_data()
     mes_id = data["message_id"]
@@ -331,14 +347,14 @@ async def continue_or_return(callback: types.CallbackQuery, state: FSMContext):
 
 
 # --------------------------------------------------------------------------------------------
-@dp.callback_query(F.data == 'option_3')
+@router.callback_query(F.data == 'option_3')
 async def illegal_actions(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=mes_data['instructions_for_contact'])
     await callback.message.answer(text=mes_data['locate_road_deficiencies'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_illegal_actions)
 
 
-@dp.message(
+@router.message(
     F.location,
     ProfileStatesGroup.input_location_for_illegal_actions
 )
@@ -351,7 +367,7 @@ async def input_description(message: types.Message, state: FSMContext):
     await state.set_state(ProfileStatesGroup.input_description)
 
 
-@dp.message(
+@router.message(
     F.text,
     ProfileStatesGroup.input_description
 )
@@ -384,11 +400,15 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
     await state.set_state(ProfileStatesGroup.input_photo_for_illegal_actions)
 
 
-@dp.message(
+@router.message(
     IsPhotoOrVideo(),
     ProfileStatesGroup.input_photo_for_illegal_actions
 )
-async def input_photo_or_video(message: types.Message, state: FSMContext):
+async def input_photo_or_video(
+        message: types.Message,
+        state: FSMContext,
+        bot: Bot
+):
     # получение id сообщения
     data = await state.get_data()
     point_id_for_illegal_actions = data["id_for_illegal_actions"]
@@ -429,7 +449,7 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
 
 
 # ---------------------------------------------------------------------------------------------
-@dp.callback_query(F.data == 'recognize')
+@router.callback_query(F.data == 'recognize')
 async def choose_que(callback: types.CallbackQuery):
     markup = InlineKeyboardBuilder()
     for i in range(7):
@@ -442,13 +462,13 @@ async def choose_que(callback: types.CallbackQuery):
 
 
 # Точки с едой (meal) -----------------------------------------------------------------
-@dp.callback_query(F.data == 'type_1')
+@router.callback_query(F.data == 'type_1')
 async def meal(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=recognize_data['start_and_send_location'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_meal)  # вешаем статус ожидания геолокации
 
 
-@dp.message(
+@router.message(
     F.location,
     ProfileStatesGroup.input_location_for_meal
 )
@@ -491,13 +511,13 @@ async def choose_meal(message: types.Message, state: FSMContext):
 
 
 # АЗС (type_2) -------------------------------------------------------------------------------------------
-@dp.callback_query(F.data == 'type_2')
+@router.callback_query(F.data == 'type_2')
 async def gas_station(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=recognize_data['start_and_send_location'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_gas_station)  # вешаем статус ожидания геолокации
 
 
-@dp.message(
+@router.message(
     F.location,
     ProfileStatesGroup.input_location_for_gas_station
 )
@@ -540,13 +560,13 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
 
 
 # Точки с автосервисами (type_3) ---------------------------------------------------------
-@dp.callback_query(F.data == 'type_3')
+@router.callback_query(F.data == 'type_3')
 async def car_service(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=recognize_data['start_and_send_location'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_car_service)  # вешаем статус ожидания геолокации
 
 
-@dp.message(
+@router.message(
     F.location,
     ProfileStatesGroup.input_location_for_car_service
 )
@@ -589,13 +609,13 @@ async def choose_car_service(message: types.Message, state: FSMContext):
 
 
 # Точки с временной парковкой (type_4) ----------------------------------------------------------------
-@dp.callback_query(F.data == 'type_4')
+@router.callback_query(F.data == 'type_4')
 async def parking_lot(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=recognize_data['start_and_send_location'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_parking_lot)  # вешаем статус ожидания геолокации
 
 
-@dp.message(F.location, ProfileStatesGroup.input_location_for_parking_lot)
+@router.message(F.location, ProfileStatesGroup.input_location_for_parking_lot)
 async def choose_parking_lot(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
@@ -634,59 +654,14 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     await state.clear()
 
 
-# # Что меня ждет на дороге (type_5)--------------------------------------------------------------------------
-# @dp.callback_query(F.data == 'type_5')
-# async def interesting_places(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer(text=recognize_data['start_and_send_location'], reply_markup=btn_to_send_loc())
-#     await state.set_state(ProfileStatesGroup.input_location)  # вешаем статус ожидания геолокации
-#
-#
-# # @dp.message(F.location, ProfileStatesGroup.input_location)
-# async def choose_interesting_places(message: types.Message, state: FSMContext):
-#     # запрос геолокаци интересных мест
-#     longitude = message.location.longitude
-#     latitude = message.location.latitude
-#     global list_interesting_places
-#     list_interesting_places = await get_request_for_map(road_name=route, x=longitude, y=latitude)  # get запрос
-#
-#     await message.answer(recognize_data['choose_interesting_places'])
-#     markup = InlineKeyboardBuilder()
-#     for i in range(10):
-#         btn = types.InlineKeyboardButton(
-#             text=str(i + 1),
-#             callback_data=f'location_interesting_places_{i}'
-#         )
-#         markup.add(btn)
-#     markup.adjust(5, 5)
-#
-#     text = ''
-#     for i in range(10):
-#         name_interesting_places = list_parking_lot['interesting_places'][i]['name']
-#         distance_interesting_places = list_parking_lot['interesting_places'][i]['s']
-#         text += f"{i + 1}. {name_interesting_places} : {distance_interesting_places}км. от вас"
-#
-#     await message.answer(text=text, reply_markup=markup.as_markup())
-#     await state.clear()
-#
-#
-# @dp.callback_query(F.data.in_(callback_map_for_interesting_places))
-# async def send_interesting_places(callback: types.CallbackQuery):
-#     await callback.message.answer(text=list_interesting_places['interesting_places'][int(callback.data[9])]['name'])
-#     await bot.send_location(
-#         chat_id=callback.message.chat.id,
-#         longitude=list_parking_lot['interesting_places'][int(callback.data[9])]['y'],
-#         latitude=list_parking_lot['interesting_places'][int(callback.data[9])]['x']
-#     )
-#
-
 # Точки с достопримечательностями (type_6) ------------------------------------------------------------
-@dp.callback_query(F.data == 'type_6')
+@router.callback_query(F.data == 'type_6')
 async def attractions(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=recognize_data['start_and_send_location'], reply_markup=btn_to_send_loc())
     await state.set_state(ProfileStatesGroup.input_location_for_attractions)  # вешаем статус ожидания геолокации
 
 
-@dp.message(F.location, ProfileStatesGroup.input_location_for_attractions)
+@router.message(F.location, ProfileStatesGroup.input_location_for_attractions)
 async def choose_attractions(message: types.Message, state: FSMContext):
     longitude = message.location.longitude
     latitude = message.location.latitude
@@ -725,16 +700,34 @@ async def choose_attractions(message: types.Message, state: FSMContext):
 
 
 # Экстренная ситуация(type_7 / option_4) ------------------------------------------------------------------
-@dp.callback_query(F.data.in_(callback_dangerous_situation))
+@router.callback_query(F.data.in_(callback_dangerous_situation))
 async def dangerous_situation(callback: types.CallbackQuery):
     await callback.message.answer(text=mes_data['dangerous_situation'])
 
 
 # ------------------------------------------------------------------------------------------------------
+async def on_startup(bot: Bot) -> None:
+    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
 
 
-async def main():
-    await dp.start_polling(bot)
+async def main() -> None:
+    bot = Bot(token=TOKEN['token'])
+    dp = Dispatcher()
+    dp.include_router(router)
+
+    dp.startup.register(on_startup)
+
+    app = web.Application()
+
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+
+    setup_application(app, dp, bot=bot)
+
+    await web._run_app(app, host=WEB_SERVER_HOST)
 
 
 if __name__ == "__main__":
