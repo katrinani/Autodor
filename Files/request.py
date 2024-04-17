@@ -4,7 +4,7 @@ import requests
 async def get_request_urgent_message(
         road_name: str
 ):
-    url = f'http://192.168.100.5:5137/api/roads/{road_name}/advertisements'
+    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/Roads/{road_name}/advertisements'
     response = requests.get(url)
     return response.json()
 
@@ -15,14 +15,18 @@ async def post_request_location_and_description(
         longitude: float,
         latitude: float,
         type_road: str,
-        description: str = None
+        description: str
 ):
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/unverifiedPoints'
+    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/UnverifiedPoints'
     data = {
-        'description': description,
-        'pointType': type_road,
-        'longitude': longitude,
-        'latitude': latitude,
+        'point': {
+            'type': type_road,
+            'coordinates': {
+                'latitude': latitude,
+                'longitude': longitude
+            },
+            'description': description
+        },
         'roadName': road_name
     }
     response = requests.post(url, json=data)
@@ -34,9 +38,9 @@ async def post_request_media(
         point_id: str,
         type_media: str
 ) -> bool:
-    url = f'http://https://smiling-striking-lionfish.ngrok-free.app/api/files/unverified/{point_id}'
+    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/UnverifiedPoints/{point_id}/file'
     fp = open(f'{file_id}.{type_media}', 'rb')
-    files = {'formFile': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
+    files = {'file': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
     response = requests.post(url, files=files)
     fp.close()
     status = response.status_code == requests.codes.ok
@@ -50,7 +54,7 @@ async def get_request_for_dots(
         latitude: float,
         point_type: str
 ):
-    url = f'http://https://smiling-striking-lionfish.ngrok-free.app/api/roads/{road_name}/{point_type}'
+    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/Roads/{road_name}/verifiedPoints/{point_type}'
     data = {
         'Coordinates.Longitude': longitude,
         'Coordinates.Latitude': latitude
