@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import logging
 
 from aiogram import F, Bot, types, Router, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -21,6 +22,8 @@ from request import (
 
 from map import load_map
 
+# ngrok config add-authtoken 2eARc5NIQJFH6vmqpMvM56DyFya_3JP6riD9tNJ3WWs7R2suH
+# ngrok http --domain=hookworm-picked-needlessly.ngrok-free.app 8080
 
 with open('../config.json', 'r') as json_file:  # '/usr/src/app/Files/config.json', 'r'
     config = json.load(json_file)
@@ -31,52 +34,14 @@ with open('../config.json', 'r') as json_file:  # '/usr/src/app/Files/config.jso
 
 router = Router()
 
-with open('../base/data_for_mess.json', 'r') as json_file:  # '/usr/src/app/base/data_for_mess.json', 'r'
-    mes_data = json.load(json_file)
+with open('../base/data_for_mess.json', 'r') as data_for_mess:  # '/usr/src/app/base/data_for_mess.json', 'r'
+    mes_data = json.load(data_for_mess)
 
-with open('../base/data_for_recognize.json', 'r') as json_file:  # '/usr/src/app/base/data_for_recognize.json', 'r'
-    recognize_data = json.load(json_file)
+with open('../base/data_for_recognize.json', 'r') as data_for_recognize:  # '/usr/src/app/base/data_for_recognize.json', 'r'
+    recognize_data = json.load(data_for_recognize)
 
-all_type_actions = {
-    "report_traffic_accident": "Дорожно-транспортные происшествия",
-    "report_road_deficiencies": "Недостатки содержания дороги",
-    "report_illegal_actions": "Противоправные действия 3-их лиц",
-    "dangerous_situation": [
-        "Куда звонить в экстренной ситуации?",
-        "Угроза жизни и здоровья"],
-    "recognize_meal": "Поесть",
-    "recognize_gas_station": "Заправиться",
-    "recognize_car_service": "Починить машину",
-    "recognize_parking_lot": "Оставить машину",
-    "recognize_attractions": "Интересные места"
-}
-callback_area = ['chelyabinsk', 'kurgan']
-callback_route = [
-    'route_chelyabinsk_1',
-    'route_chelyabinsk_2',
-    'route_chelyabinsk_3',
-    'route_chelyabinsk_4',
-    'route_kurgan_1',
-    'route_kurgan_2',
-    'route_kurgan_3',
-    'route_kurgan_4'
-]
-callback_route_for_post = ['М-5', 'А-310', 'Р-254', 'Р-354']
-callback_type_road_deficiencies = [
-        "Проломы, ямы, выбоины",
-        "Трещины",
-        "Гололёд",
-        "Проблемы с разметкой"
-    ]
-callback_continue_or_return = ['continue', 'return']
-
-callback_map_for_meal = [f'location_meal_{i}' for i in range(10)]
-callback_map_for_gas_station = [f'location_gas_station_{i}' for i in range(10)]
-callback_map_for_car_service = [f'location_car_service_{i}' for i in range(10)]
-callback_map_for_parking_lot = [f'location_parking_lot_{i}' for i in range(10)]
-callback_map_for_attractions = [f'location_attractions_{i}' for i in range(10)]
-
-callback_dangerous_situation = ['option_4', 'type_6']
+with open('../base/callback_data.json', 'r') as callback_mes_data:  # '/usr/src/app/base/data_for_recognize.json', 'r'
+    callback_data = json.load(callback_mes_data)
 
 
 class ProfileStatesGroup(StatesGroup):
@@ -133,23 +98,6 @@ def get_route_mk(
     return markup
 
 
-def types_deficiencies(
-) -> InlineKeyboardBuilder:
-    """
-        Создаёт инлайн-клавиатуру с 9 кнопками по 5-ти рядам
-        :purpose: цель использования для образования колбэков
-    """
-    markup = InlineKeyboardBuilder()
-    for i in range(4):
-        btn = types.InlineKeyboardButton(
-            text=mes_data['type_road_deficiencies'][i],
-            callback_data=mes_data['type_road_deficiencies'][i]
-        )
-        markup.add(btn)
-    markup.adjust(1, 2, 1)
-    return markup
-
-
 def btn_to_send_loc() -> ReplyKeyboardMarkup:
     """
         Создаёт реплай-клавиатуру с кнопкой в один ряд для отправления локации
@@ -163,7 +111,10 @@ def btn_to_send_loc() -> ReplyKeyboardMarkup:
     return markup
 
 
-def return_to_start():
+def return_to_start() -> ReplyKeyboardMarkup:
+    """
+        Создает реплай-клавиатуру с кнопкой для возврата в стартовую функцию
+    """
     kb = [[types.KeyboardButton(text="/start")]]
     markup = types.ReplyKeyboardMarkup(
         keyboard=kb,
@@ -173,36 +124,46 @@ def return_to_start():
 
 
 @router.message(Command('start'))
-async def choice_of_area(message: types.Message):
+async def start(message: types.Message):
+    markup = InlineKeyboardBuilder()
+    btn_1 = types.InlineKeyboardButton(text='Продолжить в текстовом формате', callback_data='text')
+    btn_2 = types.InlineKeyboardButton(text='Отправить голосовое сообщение', callback_data='voice')
+    markup.add(btn_1, btn_2)
+    markup.adjust(1, 1)
+    await message.answer(
+        text=mes_data['start_talk'],
+        reply_markup=markup.as_markup()
+    )
+
+
+@router.callback_query(F.data == 'text')
+async def choice_of_area(callback: types.CallbackQuery):
     markup = InlineKeyboardBuilder()
     btn1 = types.InlineKeyboardButton(text='Челябинская область', callback_data='chelyabinsk')
     btn2 = types.InlineKeyboardButton(text='Курганская область', callback_data='kurgan')
-    btn3 = types.InlineKeyboardButton(text='Отправить голосовое сообщение', callback_data='voice')
-    markup.add(btn1, btn2, btn3)
-    markup.adjust(2, 1)
-    await message.answer(
+    markup.add(btn1, btn2)
+    markup.adjust(1, 1)
+    await callback.message.answer(
         text=mes_data['choice_of_area'],
         reply_markup=markup.as_markup()
     )
 
 
-@router.callback_query(F.data.in_(callback_area))
+@router.callback_query(F.data.in_(callback_data['callback_area']))
 async def route_choice(callback: types.CallbackQuery):
     if callback.data == 'chelyabinsk':
-        await callback.message.answer(text='Челябинская область')
         await callback.message.answer(
             text=mes_data['route_choice'],
             reply_markup=get_route_mk(count=3, city='chelyabinsk').as_markup()
         )
     else:
-        await callback.message.answer(text='Курганская область')
         await callback.message.answer(
             text=mes_data['route_choice'],
             reply_markup=get_route_mk(count=2, city='kurgan').as_markup()
         )
 
 
-@router.callback_query(F.data.in_(callback_route_for_post))
+@router.callback_query(F.data.in_(callback_data['callback_route_for_post']))
 async def route_for_post(callback: types.CallbackQuery, state: FSMContext):
     # сохраняем переменные
     await state.update_data({"route": callback.data})
@@ -265,53 +226,53 @@ async def voice_processing(message: types.Message, state: FSMContext, bot: Bot):
     await bot.download(message.voice,  destination=f'{message.voice.file_id}.ogg')
     # запрос для отправки гс на ии
     skip_information = ['М-5', 'Починить машину']  # полученный ответ
-    if skip_information[1] == all_type_actions['report_traffic_accident']:
+    if skip_information[1] == callback_data['all_type_actions']['report_traffic_accident']:
         await traffic_accident(message)
-    elif skip_information[1] == all_type_actions['report_road_deficiencies']:
+    elif skip_information[1] == callback_data['all_type_actions']['report_road_deficiencies']:
         await road_deficiencies(
             callback=None,
             state=state,
             message=message,
             road=skip_information[0]
         )
-    elif skip_information[1] == all_type_actions['report_illegal_actions']:
+    elif skip_information[1] == callback_data['all_type_actions']['report_illegal_actions']:
         await illegal_actions(
             callback=None,
             state=state,
             message=message,
             road=skip_information[0]
         )
-    elif skip_information[1] == all_type_actions['dangerous_situation']:
+    elif skip_information[1] == callback_data['all_type_actions']['dangerous_situation']:
         await dangerous_situation(message)
-    elif skip_information[1] == all_type_actions['recognize_meal']:
+    elif skip_information[1] == callback_data['all_type_actions']['recognize_meal']:
         await meal(
             callback=None,
             state=state,
             message=message,
             road=skip_information[0]
         )
-    elif skip_information[1] == all_type_actions['recognize_gas_station']:
+    elif skip_information[1] == callback_data['all_type_actions']['recognize_gas_station']:
         await gas_station(
             callback=None,
             state=state,
             message=message,
             road=skip_information[0]
         )
-    elif skip_information[1] == all_type_actions['recognize_car_service']:
+    elif skip_information[1] == callback_data['all_type_actions']['recognize_car_service']:
         await car_service(
             callback=None,
             state=state,
             message=message,
             road=skip_information[0]
         )
-    elif skip_information[1] == all_type_actions['recognize_parking_lot']:
+    elif skip_information[1] == callback_data['all_type_actions']['recognize_parking_lot']:
         await parking_lot(
             callback=None,
             state=state,
             message=message,
             road=skip_information[0]
         )
-    elif skip_information[1] == all_type_actions['recognize_attractions']:
+    elif skip_information[1] == callback_data['all_type_actions']['recognize_attractions']:
         await attractions(
             callback=None,
             state=state,
@@ -367,7 +328,15 @@ async def location_road_deficiencies(message: types.Message, state: FSMContext):
     await state.update_data({"longitude": longitude})
     await state.update_data({"latitude": latitude})
 
-    markup = types_deficiencies()
+    markup = InlineKeyboardBuilder()
+    for i in range(4):
+        btn = types.InlineKeyboardButton(
+            text=mes_data['type_road_deficiencies'][i],
+            callback_data=mes_data['type_road_deficiencies'][i]
+        )
+        markup.add(btn)
+    markup.adjust(1, 2, 1)
+
     await message.answer(
         text=mes_data['text_for_type_road_deficiencies'],
         reply_markup=markup.as_markup()
@@ -376,7 +345,7 @@ async def location_road_deficiencies(message: types.Message, state: FSMContext):
 
 
 @router.callback_query(
-    F.data.in_(callback_type_road_deficiencies),
+    F.data.in_(callback_data['callback_type_road_deficiencies']),
     ProfileStatesGroup.output_text_for_road_deficiencies
 )
 async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
@@ -1007,7 +976,7 @@ async def choose_attractions(message: types.Message, state: FSMContext):
 
 
 # Экстренная ситуация(type_6 / option_4) ------------------------------------------------------------------
-@router.callback_query(F.data.in_(callback_dangerous_situation))
+@router.callback_query(F.data.in_(callback_data['callback_dangerous_situation']))
 async def dangerous_situation(message: types.Message):
     await message.answer(
         text=mes_data['dangerous_situation'],
@@ -1016,6 +985,12 @@ async def dangerous_situation(message: types.Message):
 
 
 # ------------------------------------------------------------------------------------------------------
+# Логируем каждое обновление
+@router.message()
+async def log_message(message: types.Message):
+    logging.info(f'New message: {message.text}')
+
+
 async def on_startup(bot: Bot) -> None:
     await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
 
@@ -1024,6 +999,14 @@ async def main() -> None:
     bot = Bot(token=TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
+
+    # Настраиваем логирование
+    logging.basicConfig(level=logging.INFO,
+                        format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
+                        handlers=[
+                            logging.FileHandler('../loging/bot.log'),
+                            logging.StreamHandler()
+                        ])
 
     dp.startup.register(on_startup)
 
