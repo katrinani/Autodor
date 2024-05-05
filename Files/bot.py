@@ -1,29 +1,48 @@
+# общие импорты
 import asyncio
 import json
 import os
 import logging
 
+# импорты из библиотеки aiogram
 from aiogram import F, Bot, types, Router, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import ReplyKeyboardMarkup, FSInputFile, Message
+from aiogram.types import FSInputFile, Message
 from aiogram.filters import Command, BaseFilter
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
+# импорты из библиотеки aiohttp
 from aiohttp import web
 
+# импорты из файла request.py
 from request import (
     get_request_for_dots,
     post_request_media,
     post_request_location_and_description,
-    get_request_urgent_message
+    get_request_urgent_message,
+    get_advertisements_for_region,
+    get_all_regions,
+    get_all_roads
 )
 
+# импорты из файла support_function.py
+from support_function import (
+    make_callback_route,
+    make_callback_regions,
+    get_route_mk,
+    return_to_start,
+    btn_to_send_loc
+)
+
+# импорты из файла map.py
 from map import load_map
 
 # ngrok config add-authtoken 2eARc5NIQJFH6vmqpMvM56DyFya_3JP6riD9tNJ3WWs7R2suH
 # ngrok http --domain=hookworm-picked-needlessly.ngrok-free.app 8080
+
+router = Router()
 
 with open('../config.json', 'r') as json_file:  # '/usr/src/app/Files/config.json', 'r'
     config = json.load(json_file)
@@ -31,16 +50,14 @@ with open('../config.json', 'r') as json_file:  # '/usr/src/app/Files/config.jso
     WEB_SERVER_HOST = config["server_host"]
     WEBHOOK_PATH = config["webhook_path"]
     WEBHOOK_URL = config["webhook_url"]
-
-router = Router()
-
-with open('../base/data_for_mess.json', 'r') as data_for_mess:  # '/usr/src/app/base/data_for_mess.json', 'r'
+    
+with open('../recurses/text_for_message/data_for_mess.json', 'r') as data_for_mess:  # '/usr/src/app/recurses/data_for_mess.json', 'r'
     mes_data = json.load(data_for_mess)
 
-with open('../base/data_for_recognize.json', 'r') as data_for_recognize:  # '/usr/src/app/base/data_for_recognize.json', 'r'
+with open('../recurses/text_for_message/data_for_recognize.json', 'r') as data_for_recognize:  # '/usr/src/app/recurses/data_for_recognize.json', 'r'
     recognize_data = json.load(data_for_recognize)
 
-with open('../base/callback_data.json', 'r') as callback_mes_data:  # '/usr/src/app/base/data_for_recognize.json', 'r'
+with open('../recurses/text_for_message/callback_data.json', 'r') as callback_mes_data:  # '/usr/src/app/recurses/data_for_recognize.json', 'r'
     callback_data = json.load(callback_mes_data)
 
 
@@ -79,105 +96,78 @@ class IsPhotoOrVideo(BaseFilter):
         return message.photo is not None or message.video is not None
 
 
-def get_route_mk(
-        city: str,
-        count: int
-) -> InlineKeyboardBuilder:
-    """
-        Создаёт инлайн-клавиатуру по 1 кнопке в произвольном количестве рядов для конкретной области
-        :city: область
-        :count: количество рядов с кнопками
-    """
-    markup = InlineKeyboardBuilder()
-    for i in range(count):
-        btn = types.InlineKeyboardButton(
-            text=mes_data[f'route_{city}'][i],
-            callback_data=mes_data[f'route_callback_{city}'][i]
-        )
-        markup.row(btn)
-    return markup
-
-
-def btn_to_send_loc() -> ReplyKeyboardMarkup:
-    """
-        Создаёт реплай-клавиатуру с кнопкой в один ряд для отправления локации
-    """
-    kb = [[types.KeyboardButton(text="Отправить нынешнюю локацию", request_location=True)]]
-    markup = types.ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder='Отправьте геолокацию')
-    return markup
-
-
-def return_to_start() -> ReplyKeyboardMarkup:
-    """
-        Создает реплай-клавиатуру с кнопкой для возврата в стартовую функцию
-    """
-    kb = [[types.KeyboardButton(text="/start")]]
-    markup = types.ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        one_time_keyboard=True)
-    return markup
-
-
 @router.message(Command('start'))
 async def start(message: types.Message):
     markup = InlineKeyboardBuilder()
     btn_1 = types.InlineKeyboardButton(text='Продолжить в текстовом формате', callback_data='text')
     btn_2 = types.InlineKeyboardButton(text='Отправить голосовое сообщение', callback_data='voice')
-    markup.add(btn_1, btn_2)
-    markup.adjust(1, 1)
+    btn_3 = types.InlineKeyboardButton(text='Продолжить в мобильном приложении', callback_data='mobile')
+    markup.add(btn_1, btn_2, btn_3)
+    markup.adjust(1, 1, 1)
     await message.answer(
         text=mes_data['start_talk'],
         reply_markup=markup.as_markup()
     )
 
 
+@router.callback_query(F.data == 'mobile')
+async def download_mobile_apl(callback: types.CallbackQuery, bot: Bot):
+    apk = FSInputFile(path='recurses/Puteslav_Alpha_Version.apk')
+    await callback.message.answer(text=mes_data[''])
+    await bot.send_document(chat_id=callback.message.chat_id, document=apk)
+
+
 @router.callback_query(F.data == 'text')
 async def choice_of_area(callback: types.CallbackQuery):
+    # запрос для получения всех регионов
+    request = await get_all_regions()
+
     markup = InlineKeyboardBuilder()
-    btn1 = types.InlineKeyboardButton(text='Челябинская область', callback_data='chelyabinsk')
-    btn2 = types.InlineKeyboardButton(text='Курганская область', callback_data='kurgan')
-    markup.add(btn1, btn2)
-    markup.adjust(1, 1)
+    for i in range(len(request['regions'])):
+        btn = types.InlineKeyboardButton(
+            text=request['regions'][i]['name'],
+            callback_data=request['regions'][i]['name']
+        )
+        markup.row(btn)
     await callback.message.answer(
         text=mes_data['choice_of_area'],
         reply_markup=markup.as_markup()
     )
 
 
-@router.callback_query(F.data.in_(callback_data['callback_area']))
+@router.callback_query(F.data.in_(make_callback_regions()))
 async def route_choice(callback: types.CallbackQuery):
-    if callback.data == 'chelyabinsk':
-        await callback.message.answer(
-            text=mes_data['route_choice'],
-            reply_markup=get_route_mk(count=3, city='chelyabinsk').as_markup()
-        )
+    # запрос на обьяления по области
+    request_advertisements = await get_advertisements_for_region(region_name=callback.data)
+    if not request_advertisements['advertisements']:
+        await callback.message.answer(text=mes_data['good_situation'])
     else:
-        await callback.message.answer(
-            text=mes_data['route_choice'],
-            reply_markup=get_route_mk(count=2, city='kurgan').as_markup()
-        )
+        count = len(request_advertisements['advertisements'])
+        text = ''
+        for i in range(count):
+            title = request_advertisements['advertisements'][i]['title']
+            message = request_advertisements['advertisements'][i]['description']
+            text += f'{i + 1}. {title}\n{message}\n\n'
+        await callback.message.answer(text)
+
+    # запрос на получние дорог в области
+    request = await get_all_roads()
+    await callback.message.answer(
+        text=mes_data['route_choice'],
+        reply_markup=get_route_mk(
+            count=len(request['roads']),
+            all_roads=request['roads']
+        ).as_markup()
+    )
 
 
-@router.callback_query(F.data.in_(callback_data['callback_route_for_post']))
+@router.callback_query(F.data.in_(make_callback_route()))
 async def route_for_post(callback: types.CallbackQuery, state: FSMContext):
     # сохраняем переменные
     await state.update_data({"route": callback.data})
 
-    # внезапное сообщение
-    # answer = await get_request_urgent_message(road_name=callback.data)
-    answer = {
-        'advertisements': [
-            {
-                'title': "Для всех дорог",
-                'description': "Все хорошо"
-            }
-        ]
-    }
+    # обьявление для дороги
+    answer = await get_request_urgent_message(road_name=callback.data)
     if not answer['advertisements']:
         await callback.message.answer(text=mes_data['good_situation'])
     else:
@@ -355,14 +345,13 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
     latitude = data["latitude"]
 
     # post запрос
-    # list_road_deficiencies = await post_request_location_and_description(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     type_road='RoadDisadvantages',
-    #     description=callback.message.text
-    # )
-    list_road_deficiencies = {"pointId": '349849547040'}
+    list_road_deficiencies = await post_request_location_and_description(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        type_road='RoadDisadvantages',
+        description=callback.message.text
+    )
     # сохраняем id точки
     point_id_for_road_deficiencies = list_road_deficiencies['pointId']
     await state.update_data({"id_for_road_deficiencies": point_id_for_road_deficiencies})
@@ -386,12 +375,11 @@ async def photo_road_deficiencies(
 
     await bot.download(message.photo[-1], destination=f'{message.photo[-1].file_id}.jpg')
     # post запрос
-    # status = await post_request_media(
-    #     file_id=message.photo[-1].file_id,
-    #     point_id=point_id_for_road_deficiencies,
-    #     type_media='jpg'
-    # )
-    status = True
+    status = await post_request_media(
+        file_id=message.photo[-1].file_id,
+        point_id=point_id_for_road_deficiencies,
+        type_media='jpg'
+    )
 
     if status:
         await message.answer(
@@ -458,14 +446,13 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
     longitude = locate[0]
     latitude = locate[1]
     # post запрос
-    # post_result = await post_request_location_and_description(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     description=description,
-    #     type_road='ThirdPartyIllegalActions'
-    # )
-    post_result = {"pointId": '3456u654'}
+    post_result = await post_request_location_and_description(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        description=description,
+        type_road='ThirdPartyIllegalActions'
+    )
 
     point_id_for_illegal_actions = post_result['pointId']
     # сохранение id точки
@@ -491,12 +478,11 @@ async def input_photo_or_video(
     if message.photo:
         await bot.download(message.photo[-1], destination=f'{message.photo[-1].file_id}.jpg')
         # обработка фото
-        # status = await post_request_media(
-        #     file_id=message.photo[-1].file_id,
-        #     point_id=point_id_for_illegal_actions,
-        #     type_media='jpg'
-        # )
-        status = True
+        status = await post_request_media(
+            file_id=message.photo[-1].file_id,
+            point_id=point_id_for_illegal_actions,
+            type_media='jpg'
+        )
         if status:
             await message.answer(
                 mes_data['end_road_deficiencies'],
@@ -511,12 +497,11 @@ async def input_photo_or_video(
     elif message.video:
         await bot.download(message.video, destination=f'{message.video.file_id}.mp4')
         # обработка видео
-        # status = await post_request_media(
-        #     file_id=message.video.file_id,
-        #     point_id=point_id_for_illegal_actions,
-        #     type_media='mp4'
-        # )
-        status = True
+        status = await post_request_media(
+            file_id=message.video.file_id,
+            point_id=point_id_for_illegal_actions,
+            type_media='mp4'
+        )
         if status:
             await message.answer(
                 mes_data['end_road_deficiencies'],
@@ -580,41 +565,19 @@ async def choose_meal(message: types.Message, state: FSMContext):
     route = data["route"]
 
     # запрос геолокаци мест с едой
-    # list_meal = await get_request_for_dots(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     point_type='Cafe'
-    # )
-    list_meal = {
-        'points': [
-            {
-                'name': 'Точка 1',
-                'coordinates': {
-                    'longitude': 61.389596,
-                    'latitude': 55.179907
-                }
-            },
-            {
-                'name': 'Точка 2',
-                'coordinates': {
-                    'longitude': 61.295911,
-                    'latitude': 55.219387
-                }
-            },
-        ],
-        'distancesFromUser': [
-            13,
-            12
-        ]
-    }
+    list_meal = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='Cafe'
+    )
 
     count = len(list_meal['points'])  # сколько пришло точек
 
     text = ''
     for i in range(count):
         name_meal = list_meal['points'][i]['name']
-        distance_meal = round(list_meal['distancesFromUser'][i], 2)
+        distance_meal = round(list_meal['points'][i]['distancesFromUser'], 2)
         text += f"{i + 1}. {name_meal} : {distance_meal}км. от вас\n"
     await message.answer(text=text)
 
@@ -667,41 +630,19 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     data = await state.get_data()
     route = data["route"]
 
-    # list_gas_station = await get_request_for_dots(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     point_type='GasStation'
-    # )
-    list_gas_station = {
-        'points': [
-            {
-                'name': 'Точка 1',
-                'coordinates': {
-                    'longitude': 61.389596,
-                    'latitude': 55.179907
-                }
-            },
-            {
-                'name': 'Точка 2',
-                'coordinates': {
-                    'longitude': 61.295911,
-                    'latitude': 55.219387
-                }
-            },
-        ],
-        'distancesFromUser': [
-            13,
-            12
-        ]
-    }
+    list_gas_station = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='GasStation'
+    )
 
     count = len(list_gas_station['points'])  # сколько пришло точек
 
     text = ''
     for i in range(count):
         name_gas_station = list_gas_station['points'][i]['name']
-        distance_gas_station = round(list_gas_station['distancesFromUser'][i], 2)
+        distance_gas_station = round(list_gas_station['points'][i]['distancesFromUser'], 2)
         text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
     await message.answer(text=text)
 
@@ -754,41 +695,19 @@ async def choose_car_service(message: types.Message, state: FSMContext):
     route = data["route"]
 
     # запрос геолокаци мест с автосервисов
-    # list_car_service = await get_request_for_dots(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     point_type='CarService'
-    # )
-    list_car_service = {
-        'points': [
-            {
-                'name': 'Точка 1',
-                'coordinates': {
-                    'longitude': 61.389596,
-                    'latitude': 55.179907
-                }
-            },
-            {
-                'name': 'Точка 2',
-                'coordinates': {
-                    'longitude': 61.295911,
-                    'latitude': 55.219387
-                }
-            },
-        ],
-        'distancesFromUser': [
-            13,
-            12
-        ]
-    }
+    list_car_service = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='CarService'
+    )
 
     count = len(list_car_service['points'])  # сколько пришло точек
 
     text = ''
     for i in range(count):
         name_car_service = list_car_service['points'][i]['name']
-        distance_car_service = round(list_car_service['distancesFromUser'][i], 2)
+        distance_car_service = round(list_car_service['points'][i]['distancesFromUser'], 2)
         text += f"{i + 1}. {name_car_service} : {distance_car_service}км. от вас\n"
     await message.answer(text=text)
 
@@ -838,41 +757,19 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     route = data["route"]
 
     # запрос геолокаци мест с парковкой
-    # list_parking_lot = await get_request_for_dots(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     point_type='RestPlace'
-    # )
-    list_parking_lot = {
-        'points': [
-            {
-                'name': 'Точка 1',
-                'coordinates': {
-                    'longitude': 61.389596,
-                    'latitude': 55.179907
-                }
-            },
-            {
-                'name': 'Точка 2',
-                'coordinates': {
-                    'longitude': 61.295911,
-                    'latitude': 55.219387
-                }
-            },
-        ],
-        'distancesFromUser': [
-            13,
-            12
-        ]
-    }
+    list_parking_lot = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='RestPlace'
+    )
 
     count = len(list_parking_lot['points'])  # сколько пришло точек
 
     text = ''
     for i in range(count):
         name_parking_lot = list_parking_lot['points'][i]['name']
-        distance_parking_lot = round(list_parking_lot['distancesFromUser'][i], 2)
+        distance_parking_lot = round(list_parking_lot['points'][i]['distancesFromUser'], 2)
         text += f"{i + 1}. {name_parking_lot} : {distance_parking_lot}км. от вас\n"
     await message.answer(text=text)
 
@@ -922,41 +819,19 @@ async def choose_attractions(message: types.Message, state: FSMContext):
     route = data["route"]
 
     # запрос геолокаци мест с достопримечательностями
-    # list_attractions = await get_request_for_dots(
-    #     road_name=route,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    #     point_type='InterestingPlace'
-    # )
-    list_attractions = {
-        'points': [
-            {
-                'name': 'Точка 1',
-                'coordinates': {
-                    'longitude': 61.389596,
-                    'latitude': 55.179907
-                }
-            },
-            {
-                'name': 'Точка 2',
-                'coordinates': {
-                    'longitude': 61.295911,
-                    'latitude': 55.219387
-                }
-            },
-        ],
-        'distancesFromUser': [
-            13,
-            12
-        ]
-    }
+    list_attractions = await get_request_for_dots(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        point_type='InterestingPlace'
+    )
 
     count = len(list_attractions['points'])  # сколько пришло точек
 
     text = ''
     for i in range(count):
         name_attractions = list_attractions['points'][i]['name']
-        distance_attractions = round(list_attractions['distancesFromUser'][i], 2)
+        distance_attractions = round(list_attractions['points'][i]['distancesFromUser'], 2)
         text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас\n"
     await message.answer(text=text)
     # вывод карты

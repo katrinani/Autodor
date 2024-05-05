@@ -15,18 +15,6 @@ data = {
         "recognize_parking_lot": "Оставить машину",
         "recognize_attractions": "Интересные места"
     },
-    "callback_area": ['chelyabinsk', 'kurgan'],
-    "callback_route": [
-        'route_chelyabinsk_1',
-        'route_chelyabinsk_2',
-        'route_chelyabinsk_3',
-        'route_chelyabinsk_4',
-        'route_kurgan_1',
-        'route_kurgan_2',
-        'route_kurgan_3',
-        'route_kurgan_4'
-    ],
-    "callback_route_for_post": ['М-5', 'А-310', 'Р-254', 'Р-354'],
     "callback_type_road_deficiencies": [
             "Проломы, ямы, выбоины",
             "Трещины",
@@ -42,5 +30,5 @@ data = {
     "callback_dangerous_situation": ['option_4', 'type_6']
 }
 
-with open('../base/callback_data.json', 'w') as file:
+with open('../recurses/text_for_message/callback_data.json', 'w') as file:
     json.dump(data, file)
