@@ -6,17 +6,24 @@ async def get_all_regions():
     На вход ничего не идет
     :return: {"regions": [{"name": "string"}]}
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/regions'
+    url = f'http://backend:8080/api/regions'
     response = requests.get(url)
     return response.json()
 
 
 async def get_all_roads():
+    url = f'http://backend:8080/api/Roads'
+    response = requests.get(url)
+    return response.json()
+
+
+async def get_roads_in_region(
+    region_name: str
+):
     """
-    На вход ничего не идет
     :return:  {"roads": [{"roadName": "string"}]}
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/roads'
+    url = f'http://backend:8080/api/regions/{region_name}/Roads'
     response = requests.get(url)
     return response.json()
 
@@ -34,7 +41,7 @@ async def get_advertisements_for_region(
       "regionName": "string"
         }]}
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/regions/{region_name}/advertisements'
+    url = f'http://backend:8080/api/regions/{region_name}/advertisements'
     response = requests.get(url)
     return response.json()
 
@@ -51,7 +58,7 @@ async def get_request_urgent_message(
       "regionName": "string" // будет null
         }]}
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/Roads/{road_name}/advertisements'
+    url = f'http://backend:8080/api/Roads/{road_name}/advertisements'
     response = requests.get(url)
     return response.json()
 
@@ -72,7 +79,7 @@ async def post_request_location_and_description(
     :param description: тип повреждения/ описание действия
     :return: {"pointId": str}
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/UnverifiedPoints'
+    url = f'http://backend:8080/api/UnverifiedPoints'
     data = {
         'point': {
             'type': type_road,
@@ -101,7 +108,7 @@ async def post_request_media(
     :param type_media: расширение файла (.mp4 / .jpg )
     :return: True (в случае статус кода 200) / False (в случает какой либо ошибки)
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/UnverifiedPoints/{point_id}/file'
+    url = f'http://backend:8080/api/UnverifiedPoints/{point_id}/file'
     fp = open(f'{file_id}.{type_media}', 'rb')
     files = {'file': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
     response = requests.post(url, files=files)
@@ -125,7 +132,7 @@ async def get_request_for_dots(
     :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},
     "distanseFromUser": num}]}
     """
-    url = f'https://smiling-striking-lionfish.ngrok-free.app/api/Roads/{road_name}/verifiedPoints/{point_type}'
+    url = f'http://backend:8080/api/Roads/{road_name}/verifiedPoints/{point_type}'
     data = {
         'Coordinates.Longitude': longitude,
         'Coordinates.Latitude': latitude,

@@ -7,8 +7,8 @@ import logging
 # импорты из библиотеки aiogram
 from aiogram import F, Bot, types, Router, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import FSInputFile, Message
-from aiogram.filters import Command, BaseFilter
+from aiogram.types import FSInputFile
+from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
@@ -24,40 +24,44 @@ from request import (
     get_request_urgent_message,
     get_advertisements_for_region,
     get_all_regions,
-    get_all_roads
+    get_roads_in_region
 )
 
 # импорты из файла support_function.py
 from support_function import (
-    make_callback_route,
-    make_callback_regions,
     get_route_mk,
     return_to_start,
-    btn_to_send_loc
+    btn_to_send_loc,
+
 )
 
 # импорты из файла map.py
 from map import load_map
 
-# ngrok config add-authtoken 2eARc5NIQJFH6vmqpMvM56DyFya_3JP6riD9tNJ3WWs7R2suH
-# ngrok http --domain=hookworm-picked-needlessly.ngrok-free.app 8080
+from filters.IsPhotoOrVideo import IsPhotoOrVideo
+from filters.CallbackRouteFilter import CallbackRouteFilter
+from filters.CallbackRegionFilter import CallbackRegionFilter
+
 
 router = Router()
 
-with open('../config.json', 'r') as json_file:  # '/usr/src/app/Files/config.json', 'r'
+with open('/usr/src/app/config.json', 'r') as json_file:
     config = json.load(json_file)
     TOKEN = config["token"]
     WEB_SERVER_HOST = config["server_host"]
     WEBHOOK_PATH = config["webhook_path"]
     WEBHOOK_URL = config["webhook_url"]
-    
-with open('../recurses/text_for_message/data_for_mess.json', 'r') as data_for_mess:  # '/usr/src/app/recurses/data_for_mess.json', 'r'
+
+with open('/usr/src/app/recurses/text_for_message/data_for_mess.json',
+          'r') as data_for_mess:
     mes_data = json.load(data_for_mess)
 
-with open('../recurses/text_for_message/data_for_recognize.json', 'r') as data_for_recognize:  # '/usr/src/app/recurses/data_for_recognize.json', 'r'
+with open('/usr/src/app/recurses/text_for_message/data_for_recognize.json',
+          'r') as data_for_recognize:
     recognize_data = json.load(data_for_recognize)
 
-with open('../recurses/text_for_message/callback_data.json', 'r') as callback_mes_data:  # '/usr/src/app/recurses/data_for_recognize.json', 'r'
+with open('/usr/src/app/recurses/text_for_message/data_for_recognize.json',
+          'r') as callback_mes_data:
     callback_data = json.load(callback_mes_data)
 
 
@@ -88,33 +92,28 @@ class ProfileStatesGroup(StatesGroup):
     output_points_for_attractions = State()
 
 
-class IsPhotoOrVideo(BaseFilter):
-    def __init__(self) -> None:
-        pass
-
-    async def __call__(self, message: Message) -> bool:
-        return message.photo is not None or message.video is not None
-
-
 @router.message(Command('start'))
 async def start(message: types.Message):
     markup = InlineKeyboardBuilder()
     btn_1 = types.InlineKeyboardButton(text='Продолжить в текстовом формате', callback_data='text')
     btn_2 = types.InlineKeyboardButton(text='Отправить голосовое сообщение', callback_data='voice')
-    btn_3 = types.InlineKeyboardButton(text='Продолжить в мобильном приложении', callback_data='mobile')
-    markup.add(btn_1, btn_2, btn_3)
-    markup.adjust(1, 1, 1)
+    # btn_3 = types.InlineKeyboardButton(text='Продолжить в мобильном приложении', callback_data='mobile')
+    markup.add(btn_1, btn_2)
+    markup.adjust(1, 1)
     await message.answer(
         text=mes_data['start_talk'],
         reply_markup=markup.as_markup()
     )
 
-
-@router.callback_query(F.data == 'mobile')
-async def download_mobile_apl(callback: types.CallbackQuery, bot: Bot):
-    apk = FSInputFile(path='recurses/Puteslav_Alpha_Version.apk')
-    await callback.message.answer(text=mes_data[''])
-    await bot.send_document(chat_id=callback.message.chat_id, document=apk)
+# from pathlib import Path
+# @router.callback_query(F.data == 'mobile')
+# async def download_mobile_apl(callback: types.CallbackQuery, bot: Bot):
+#     apk_path = Path('../recurses/Puteslav_Alpha_Version.apk')
+#     await callback.message.answer(text=mes_data['mobile'])
+#     # Отправка файла APK
+    # with open(apk_path, 'rb') as apk_file:
+    #     input_file = InputFile(apk_file)
+    #     await bot.send_document(callback.message.chat.id, input_file, caption='Вот ваш APK файл')
 
 
 @router.callback_query(F.data == 'text')
@@ -135,7 +134,7 @@ async def choice_of_area(callback: types.CallbackQuery):
     )
 
 
-@router.callback_query(F.data.in_(make_callback_regions()))
+@router.callback_query(CallbackRegionFilter())
 async def route_choice(callback: types.CallbackQuery):
     # запрос на обьяления по области
     request_advertisements = await get_advertisements_for_region(region_name=callback.data)
@@ -151,7 +150,7 @@ async def route_choice(callback: types.CallbackQuery):
         await callback.message.answer(text)
 
     # запрос на получние дорог в области
-    request = await get_all_roads()
+    request = await get_roads_in_region(callback.data)
     await callback.message.answer(
         text=mes_data['route_choice'],
         reply_markup=get_route_mk(
@@ -161,7 +160,7 @@ async def route_choice(callback: types.CallbackQuery):
     )
 
 
-@router.callback_query(F.data.in_(make_callback_route()))
+@router.callback_query(CallbackRouteFilter())
 async def route_for_post(callback: types.CallbackQuery, state: FSMContext):
     # сохраняем переменные
     await state.update_data({"route": callback.data})
@@ -213,7 +212,7 @@ async def voice_requirements(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(F.voice, ProfileStatesGroup.input_voice)
 async def voice_processing(message: types.Message, state: FSMContext, bot: Bot):
-    await bot.download(message.voice,  destination=f'{message.voice.file_id}.ogg')
+    await bot.download(message.voice, destination=f'{message.voice.file_id}.ogg')
     # запрос для отправки гс на ии
     skip_information = ['М-5', 'Починить машину']  # полученный ответ
     if skip_information[1] == callback_data['all_type_actions']['report_traffic_accident']:
@@ -573,6 +572,9 @@ async def choose_meal(message: types.Message, state: FSMContext):
     )
 
     count = len(list_meal['points'])  # сколько пришло точек
+    if count == 0:
+        await message.answer('К сожалению ближайших к вам точек нет')
+        return
 
     text = ''
     for i in range(count):
@@ -582,13 +584,10 @@ async def choose_meal(message: types.Message, state: FSMContext):
     await message.answer(text=text)
 
     # вывод карты
-    if not list_meal:
-        await message.answer('К сожалению ближайших к вам точек нет')
-    else:
-        load_map(longitude=longitude, latitude=latitude, list_dots=list_meal, color='rd')
-        file = FSInputFile('map.png')
-        await message.answer_photo(file)
-        os.remove('map.png')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_meal, color='rd')
+    file = FSInputFile('map.png')
+    await message.answer_photo(file)
+    os.remove('map.png')
 
     await message.answer(
         text='Для просмотра других точек нажмите /start',
@@ -638,6 +637,9 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     )
 
     count = len(list_gas_station['points'])  # сколько пришло точек
+    if count == 0:
+        await message.answer('К сожалению ближайших к вам точек нет')
+        return
 
     text = ''
     for i in range(count):
@@ -647,17 +649,15 @@ async def choose_gas_station(message: types.Message, state: FSMContext):
     await message.answer(text=text)
 
     # вывод карты
-    if not list_gas_station:
-        await message.answer('К сожалению ближайших к вам точек нет')
-    else:
-        load_map(longitude=longitude, latitude=latitude, list_dots=list_gas_station, color='nt')
-        file = FSInputFile('map.png')
-        await message.answer_photo(file)
-        os.remove('map.png')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_gas_station, color='nt')
+    file = FSInputFile('map.png')
+    await message.answer_photo(file)
+    os.remove('map.png')
+
 
     await message.answer(
-        text='Для просмотра других точек нажмите /start',
-        reply_markup=return_to_start()
+    text='Для просмотра других точек нажмите /start',
+    reply_markup=return_to_start()
     )
     await state.clear()
 
@@ -703,6 +703,9 @@ async def choose_car_service(message: types.Message, state: FSMContext):
     )
 
     count = len(list_car_service['points'])  # сколько пришло точек
+    if count == 0:
+        await message.answer('К сожалению ближайших к вам точек нет')
+        return
 
     text = ''
     for i in range(count):
@@ -712,13 +715,10 @@ async def choose_car_service(message: types.Message, state: FSMContext):
     await message.answer(text=text)
 
     # вывод карты
-    if not list_car_service:
-        await message.answer('К сожалению ближайших к вам точек нет')
-    else:
-        load_map(longitude=longitude, latitude=latitude, list_dots=list_car_service, color='dg')
-        file = FSInputFile('map.png')
-        await message.answer_photo(file)
-        os.remove('map.png')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_car_service, color='dg')
+    file = FSInputFile('map.png')
+    await message.answer_photo(file)
+    os.remove('map.png')
 
     await message.answer(
         text='Для просмотра других точек нажмите /start',
@@ -765,6 +765,9 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     )
 
     count = len(list_parking_lot['points'])  # сколько пришло точек
+    if count == 0:
+        await message.answer('К сожалению ближайших к вам точек нет')
+        return
 
     text = ''
     for i in range(count):
@@ -774,13 +777,10 @@ async def choose_parking_lot(message: types.Message, state: FSMContext):
     await message.answer(text=text)
 
     # вывод карты
-    if not list_parking_lot:
-        await message.answer('К сожалению ближайших к вам точек нет')
-    else:
-        load_map(longitude=longitude, latitude=latitude, list_dots=list_parking_lot, color='vv')
-        file = FSInputFile('map.png')
-        await message.answer_photo(file)
-        os.remove('map.png')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_parking_lot, color='vv')
+    file = FSInputFile('map.png')
+    await message.answer_photo(file)
+    os.remove('map.png')
 
     await message.answer(
         text='Для просмотра других точек нажмите /start',
@@ -827,6 +827,9 @@ async def choose_attractions(message: types.Message, state: FSMContext):
     )
 
     count = len(list_attractions['points'])  # сколько пришло точек
+    if count == 0:
+        await message.answer('К сожалению ближайших к вам точек нет')
+        return
 
     text = ''
     for i in range(count):
@@ -834,14 +837,12 @@ async def choose_attractions(message: types.Message, state: FSMContext):
         distance_attractions = round(list_attractions['points'][i]['distancesFromUser'], 2)
         text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас\n"
     await message.answer(text=text)
+
     # вывод карты
-    if not list_attractions:
-        await message.answer('К сожалению ближайших к вам точек нет')
-    else:
-        load_map(longitude=longitude, latitude=latitude, list_dots=list_attractions, color='or')
-        file = FSInputFile('map.png')
-        await message.answer_photo(file)
-        os.remove('map.png')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_attractions, color='or')
+    file = FSInputFile('map.png')
+    await message.answer_photo(file)
+    os.remove('map.png')
 
     await message.answer(
         text='Для просмотра других точек нажмите /start',
@@ -884,17 +885,13 @@ async def main() -> None:
                         ])
 
     dp.startup.register(on_startup)
-
     app = web.Application()
-
     webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
         bot=bot,
     )
     webhook_requests_handler.register(app, path=WEBHOOK_PATH)
-
     setup_application(app, dp, bot=bot)
-
     await web._run_app(app, host=WEB_SERVER_HOST)
 
 

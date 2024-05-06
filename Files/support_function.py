@@ -4,7 +4,7 @@ from aiogram.types import ReplyKeyboardMarkup
 from aiogram import types
 
 # импорты из файла request.py
-from request import (get_all_regions, get_all_roads)
+from request import (get_all_regions, get_all_roads, get_roads_in_region)
 
 
 async def make_callback_regions() -> list:
@@ -13,18 +13,25 @@ async def make_callback_regions() -> list:
     :return: callback: list - список регионов
     """
     request = await get_all_regions()
-    callback = [request['regions'][i]['name'] for i in range(len(request['regions']))]
+    callback = []
+    for i in range(len(request['regions'])):
+        callback.append(request['regions'][i]['name'])
     return callback
 
 
-async def make_callback_route() -> list:
+async def make_callback_route(region: str | None) -> list:
     """
     С помощью запроса создает список из всех пришедших дорог
     :return: callback: list - список дорог
     """
-    request = await get_all_roads()
-    callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
-    return callback
+    if not region:
+        request = await get_all_roads()
+        callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
+        return callback
+    else:
+        request = await get_roads_in_region(region)
+        callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
+        return callback
 
 
 def get_route_mk(
