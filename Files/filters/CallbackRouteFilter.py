@@ -1,5 +1,5 @@
 from aiogram.filters import BaseFilter
-from Files.support_function import make_callback_route
+from support_function import make_callback_route
 from aiogram import types
 
 
@@ -9,4 +9,4 @@ class CallbackRouteFilter(BaseFilter):
 
     async def __call__(self, callback_query: types.CallbackQuery) -> bool:
         routes = await make_callback_route(None)
-        return callback_query.data in routes
+        return any(callback_query.data in item for item in routes)

@@ -1,5 +1,5 @@
 from aiogram.filters import BaseFilter
-from Files.support_function import make_callback_regions
+from support_function import make_callback_regions
 from aiogram import types
 
 
