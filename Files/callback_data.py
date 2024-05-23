@@ -3,17 +3,17 @@ import json
 
 data = {
     "all_type_actions": {
-        "report_traffic_accident": "Дорожно-транспортные происшествия",
-        "report_road_deficiencies": "Недостатки содержания дороги",
-        "report_illegal_actions": "Противоправные действия 3-их лиц",
+        "report_traffic_accident": "ДТП",
+        "report_road_deficiencies": "Яма",
+        "report_illegal_actions": "Закон",
         "dangerous_situation": [
             "Куда звонить в экстренной ситуации?",
             "Угроза жизни и здоровья"],
-        "recognize_meal": "Поесть",
-        "recognize_gas_station": "Заправиться",
-        "recognize_car_service": "Починить машину",
-        "recognize_parking_lot": "Оставить машину",
-        "recognize_attractions": "Интересные места"
+        "recognize_meal": "Кафе",
+        "recognize_gas_station": "АЗС",
+        "recognize_car_service": "СТО",
+        "recognize_parking_lot": "Парковка",
+        "recognize_attractions": "Развлечения"
     },
     "callback_type_road_deficiencies": [
             "Проломы, ямы, выбоины",
