@@ -2,9 +2,12 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup
 from aiogram import types
+from pydub import AudioSegment
+import os
+import requests
 
 # импорты из файла request.py
-from request import (get_all_regions, get_all_roads, get_roads_in_region)
+from request import (get_all_regions, get_request_audio)
 
 
 async def make_callback_regions() -> list:
@@ -19,19 +22,19 @@ async def make_callback_regions() -> list:
     return callback
 
 
-async def make_callback_route(region: str | None) -> list:
-    """
-    С помощью запроса создает список из всех пришедших дорог
-    :return: callback: list - список дорог
-    """
-    if not region:
-        request = await get_all_roads()
-        callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
-        return callback
-    else:
-        request = await get_roads_in_region(region)
-        callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
-        return callback
+# async def make_callback_route(region: str | None) -> list:
+#     """
+#     С помощью запроса создает список из всех пришедших дорог
+#     :return: callback: list - список дорог
+#     """
+#     if not region:
+#         request = await get_all_roads()
+#         callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
+#         return callback
+#     else:
+#         request = await get_roads_in_region(region)
+#         callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
+#         return callback
 
 
 def get_route_mk(
@@ -79,3 +82,24 @@ def return_to_start() -> ReplyKeyboardMarkup:
         resize_keyboard=True,
         one_time_keyboard=True)
     return markup
+
+
+async def concate_files(
+    count: int, answer: [any, any, any], callback: int, flag: True, audio: AudioSegment
+) -> tuple[bool, AudioSegment]:
+    audio = AudioSegment.empty()
+    for i in range(count):
+        file_path = f"{answer['advertisements'][i]['id']}-{callback}.ogg"
+        r = await get_request_audio(answer["advertisements"][i]["id"])
+        if r.status_code == requests.codes.ok:
+            flag = True
+            with open(file_path, "wb") as f:
+                f.write(r.content)
+            if i == 0:
+                audio = AudioSegment.from_file(file_path, format="ogg")
+                i = +1
+            else:
+                audio = audio + AudioSegment.silent(1000)
+                audio = audio + AudioSegment.from_file(file_path, format="ogg")
+            os.remove(file_path)
+    return flag, audio

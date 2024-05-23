@@ -1,4 +1,15 @@
 import requests
+domain = 'http://87.242.87.68:5139'
+
+
+async def get_road_and_region(longitude, latitude):
+    url = f'{domain}/api/roads/nearest'
+    data = {
+        'Coordinates.Longitude': longitude,
+        'Coordinates.Latitude': latitude
+    }
+    response = requests.get(url, params=data)
+    return response.json()
 
 
 async def get_all_regions():
@@ -6,13 +17,7 @@ async def get_all_regions():
     На вход ничего не идет
     :return: {"regions": [{"name": "string"}]}
     """
-    url = f'http://backend:8080/api/regions'
-    response = requests.get(url)
-    return response.json()
-
-
-async def get_all_roads():
-    url = f'http://backend:8080/api/Roads'
+    url = f'{domain}/api/regions'
     response = requests.get(url)
     return response.json()
 
@@ -23,26 +28,40 @@ async def get_roads_in_region(
     """
     :return:  {"roads": [{"roadName": "string"}]}
     """
-    url = f'http://backend:8080/api/regions/{region_name}/Roads'
+    url = f'{domain}/api/regions/{region_name}/Roads'
     response = requests.get(url)
     return response.json()
 
 
 # обьявления -------------------------------------------
+async def get_request_audio(file_id: str):
+    url = f"http://87.242.87.68:5139/api/advertisements/{file_id}/voice"
+    response = requests.get(url)
+    return response
+
+
 # по области
 async def get_advertisements_for_region(
         region_name: str
 ):
     """
     :param region_name:  название региона, которое передается в url запроса
-    :return: {"advertisements": [{
+    :return: {"advertisements": [
+    {
+      "id": "uuid",
       "title": "string",
-      "description": "string", // может отсутствовать
+      "description": "string", // Если менеджер его не заполнил, то просто придёт пустая строка
       "regionName": "string"
-        }]}
+    }
+  ]}
     """
-    url = f'http://backend:8080/api/regions/{region_name}/advertisements'
+    url = f'{domain}/api/regions/{region_name}/advertisements'
+    print(url)
     response = requests.get(url)
+    print(response)
+    if response.status_code != 200:
+        print(f'Error {response.status_code}: {response.text}')
+        return
     return response.json()
 
 
@@ -58,7 +77,7 @@ async def get_request_urgent_message(
       "regionName": "string" // будет null
         }]}
     """
-    url = f'http://backend:8080/api/Roads/{road_name}/advertisements'
+    url = f'{domain}/api/Roads/{road_name}/advertisements'
     response = requests.get(url)
     return response.json()
 
@@ -68,7 +87,7 @@ async def post_request_location_and_description(
         road_name: str,
         longitude: float,
         latitude: float,
-        type_road: str,
+        type_road: int,
         description: str
 ):
     """
@@ -79,10 +98,11 @@ async def post_request_location_and_description(
     :param description: тип повреждения/ описание действия
     :return: {"pointId": str}
     """
-    url = f'http://backend:8080/api/UnverifiedPoints'
+    url = f'{domain}/api/UnverifiedPoints'
     data = {
         'point': {
             'type': type_road,
+            "reliabilityLevel": 1,
             'coordinates': {
                 'latitude': latitude,
                 'longitude': longitude
@@ -93,7 +113,9 @@ async def post_request_location_and_description(
         },
         'description': description
     }
+    print(data)
     response = requests.post(url, json=data)
+    print(response.json())
     return response.json()
 
 
@@ -108,12 +130,13 @@ async def post_request_media(
     :param type_media: расширение файла (.mp4 / .jpg )
     :return: True (в случае статус кода 200) / False (в случает какой либо ошибки)
     """
-    url = f'http://backend:8080/api/UnverifiedPoints/{point_id}/file'
+    url = f'{domain}/api/UnverifiedPoints/{point_id}/file'
     fp = open(f'{file_id}.{type_media}', 'rb')
     files = {'file': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
     response = requests.post(url, files=files)
+    print(response)
     fp.close()
-    status = response.status_code == requests.codes.ok
+    status = response.status_code == 201
     return status
 
 
@@ -132,7 +155,7 @@ async def get_request_for_dots(
     :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},
     "distanseFromUser": num}]}
     """
-    url = f'http://backend:8080/api/Roads/{road_name}/verifiedPoints/{point_type}'
+    url = f'{domain}/api/Roads/{road_name}/verifiedPoints/{point_type}'
     data = {
         'Coordinates.Longitude': longitude,
         'Coordinates.Latitude': latitude,
