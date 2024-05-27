@@ -88,7 +88,8 @@ async def post_request_location_and_description(
         longitude: float,
         latitude: float,
         type_road: int,
-        description: str
+        description: str,
+        level: int
 ):
     """
     :param road_name: название дороги
@@ -102,7 +103,7 @@ async def post_request_location_and_description(
     data = {
         'point': {
             'type': type_road,
-            "reliabilityLevel": 1,
+            "reliabilityLevel": level,
             'coordinates': {
                 'latitude': latitude,
                 'longitude': longitude

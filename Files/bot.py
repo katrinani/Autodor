@@ -9,7 +9,6 @@ from aiogram import F, Bot, types, Router, Dispatcher
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import FSInputFile
 from aiogram.filters import Command
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
@@ -38,9 +37,8 @@ from support_function import (
 
 # импорты из файла map.py
 from map import load_map
-
 from filters.IsPhotoOrVideo import IsPhotoOrVideo
-
+from filters.States import ProfileStatesGroup
 # ngrok config add-authtoken 2eARc5NIQJFH6vmqpMvM56DyFya_3JP6riD9tNJ3WWs7R2suH
 # ngrok http --domain=hookworm-picked-needlessly.ngrok-free.app 8080
 
@@ -66,33 +64,6 @@ with open(r'C:\Users\админ\PycharmProjects\Autodor\recurses\text_for_messag
     callback_data = json.load(callback_mes_data)
 
 
-class ProfileStatesGroup(StatesGroup):
-    text_or_voice = State()
-
-    input_voice = State()
-    go_to_road_deficiencies = State()
-
-    input_description_for_illegal_actions = State()
-    input_description_for_road_deficiencies = State()
-
-    input_location = State()
-    advertisements = State()
-    report_or_recognize = State()
-    report = State()
-    recognize = State()
-
-    input_photo_for_road_deficiencies = State()
-    input_photo_for_illegal_actions = State()
-
-    output_text_for_road_deficiencies = State()
-
-    output_points_for_meal = State()
-    output_points_for_gas_station = State()
-    output_points_for_car_service = State()
-    output_points_for_parking_lot = State()
-    output_points_for_attractions = State()
-
-
 @router.message(Command('start'))
 async def start(message: types.Message, state: FSMContext):
     await message.answer(text=mes_data['start_talk'], reply_markup=btn_to_send_loc())
@@ -104,6 +75,12 @@ async def start(message: types.Message, state: FSMContext):
         ProfileStatesGroup.input_location
     )
 async def location_confirmation(message: types.Message, state: FSMContext):
+    if message.reply_to_message is None:
+        print('Самостоятельно отправленная локация')
+        await state.update_data({"reliability_level": 2})
+    else:
+        print('Локация через кнопку')
+        await state.update_data({"reliability_level": 1})
     longitude = message.location.longitude
     latitude = message.location.latitude
     # сохраняем локацию
@@ -117,8 +94,9 @@ async def location_confirmation(message: types.Message, state: FSMContext):
     )
     print(answer)
     if not answer['roadName'] and not answer['regionName']:
-        await message.answer('Вы слишком далеко от киллометрового столба')
-    # answer = {'roadName': 'М-5 "Урал" ПкЕ: Челябинск - Екатеринбург', 'regionName': 'Челябинская область'}
+        await message.answer('Вы слишком далеко от киллометрового столба. Попробуйте еще раз позже')
+        await state.set_state(ProfileStatesGroup.input_location)
+        return
     # сохраняем место
     await state.update_data({"road": answer['roadName']})
     await state.update_data({"region": answer['regionName']})
@@ -140,6 +118,7 @@ async def location_confirmation(message: types.Message, state: FSMContext):
     ProfileStatesGroup.text_or_voice
 )
 async def retry_send_location(callback: types.CallbackQuery, state: FSMContext):
+    print(callback)
     await callback.message.answer(
         text='Попробуйте еще раз отправить локацию',
         reply_markup=btn_to_send_loc()
@@ -270,73 +249,139 @@ async def voice_requirements(callback: types.CallbackQuery, state: FSMContext):
 
 
 @router.message(F.voice, ProfileStatesGroup.input_voice)
-async def voice_processing(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
-    await bot.download(callback.message.voice, destination=f'{callback.message.voice.file_id}.ogg')
-    # запрос для отправки гс на ии
-    skip_information = ['Починить машину']  # полученный ответ
+async def voice_processing(message: types.Message, state: FSMContext, bot: Bot):
+    await bot.download(message.voice, destination=f'{message.voice.file_id}.ogg')
+    await state.update_data({"file_name": f'{message.voice.file_id}.ogg'})
 
-    if skip_information[0] == callback_data['all_type_actions']['report_traffic_accident']:
-        await traffic_accident(callback)
-    elif skip_information[0] == callback_data['all_type_actions']['report_road_deficiencies']:
+    # запрос для отправки гс на ии
+    skip_information = ['АЗС']  # полученный ответ
+    await state.update_data({"to_do": skip_information[0]})
+
+    text = f'Вы хотите перейти к действию под названием: {skip_information[0]}. Верно?'
+    markup = InlineKeyboardBuilder()
+    btn_1 = types.InlineKeyboardButton(text='Да', callback_data='voice_good')
+    btn_2 = types.InlineKeyboardButton(text='Нет', callback_data='voice_bad')
+    markup.add(btn_1, btn_2)
+    markup.adjust(2)
+
+    await message.answer(text=text, reply_markup=markup.as_markup())
+    await state.set_state(ProfileStatesGroup.voice_right_or_not)
+
+
+@router.callback_query(F.data == 'voice_bad', ProfileStatesGroup.voice_right_or_not)
+async def voice_bad(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer('Попробуйте отправить голосовое сообщение еще раз')
+    await state.set_state(ProfileStatesGroup.input_voice)
+
+
+@router.callback_query(F.data == 'voice_good', ProfileStatesGroup.voice_right_or_not)
+async def voice_good(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    to_do = data['to_do']
+    file_name = data['file_name']
+
+    if to_do == callback_data['all_type_actions']['report_traffic_accident']:
+        await traffic_accident(
+            callback=callback,
+            state=state
+        )
+        await state.set_state(ProfileStatesGroup.input_description_for_traffic_accident)
+    elif to_do == callback_data['all_type_actions']['report_road_deficiencies']:
         await road_deficiencies(
             callback=callback,
             state=state
         )
-        await state.set_state(ProfileStatesGroup.report)
-    elif skip_information[0] == callback_data['all_type_actions']['report_illegal_actions']:
+        await state.set_state(ProfileStatesGroup.output_text_for_road_deficiencies)
+
+    elif to_do == callback_data['all_type_actions']['report_illegal_actions']:
         await illegal_actions(
             callback=callback,
             state=state
         )
-        await state.set_state(ProfileStatesGroup.report)
-    elif skip_information[0] == callback_data['all_type_actions']['dangerous_situation']:
-        await dangerous_situation(callback)
-        await state.set_state(ProfileStatesGroup.report)
-    elif skip_information[0] == callback_data['all_type_actions']['recognize_meal']:
+        await state.set_state(ProfileStatesGroup.input_description_for_illegal_actions)
+    elif to_do == callback_data['all_type_actions']['report_road_block']:
+        await road_block(
+            callback=callback,
+            state=state
+        )
+        await state.set_state(ProfileStatesGroup.input_description_for_road_block)
+    elif to_do == callback_data['all_type_actions']['recognize_meal']:
         await meal(
             callback=callback,
             state=state
         )
         await state.set_state(ProfileStatesGroup.recognize)
-    elif skip_information[0] == callback_data['all_type_actions']['recognize_gas_station']:
+    elif to_do == callback_data['all_type_actions']['recognize_gas_station']:
         await gas_station(
             callback=callback,
             state=state
         )
         await state.set_state(ProfileStatesGroup.recognize)
-    elif skip_information[0] == callback_data['all_type_actions']['recognize_car_service']:
+    elif to_do == callback_data['all_type_actions']['recognize_car_service']:
         await car_service(
             callback=callback,
             state=state
         )
-        # await state.set_state(ProfileStatesGroup.recognize)
-    elif skip_information[0] == callback_data['all_type_actions']['recognize_parking_lot']:
+        await state.set_state(ProfileStatesGroup.recognize)
+    elif to_do == callback_data['all_type_actions']['recognize_parking_lot']:
         await parking_lot(
             callback=callback,
             state=state
         )
         await state.set_state(ProfileStatesGroup.recognize)
-    elif skip_information[0] == callback_data['all_type_actions']['recognize_attractions']:
+    elif to_do == callback_data['all_type_actions']['recognize_attractions']:
         await attractions(
             callback=callback,
             state=state
         )
         await state.set_state(ProfileStatesGroup.recognize)
+    elif to_do == callback_data['all_type_actions']['recognize_dangerous_situation']:
+        await dangerous_situation(callback)
+        await state.set_state(ProfileStatesGroup.report)
     else:
         await callback.message.answer(text=mes_data['bad_situation'])
         await state.set_state(ProfileStatesGroup.input_voice)
-    os.remove(f'{callback.message.voice.file_id}.ogg')
+    os.remove(file_name)
+    print(f"voice_good: Current state: {await state.get_state()}")
 
 
 # -----------------------------------------------------------
 @router.callback_query(F.data == 'option_1', ProfileStatesGroup.report)
 async def traffic_accident(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer(text=mes_data['traffic_accident'])
-    await callback.message.answer(
-        text='Для повторного выбора нажмите /start',
-        reply_markup=return_to_start()
+    await state.set_state(ProfileStatesGroup.input_description_for_traffic_accident)
+
+
+@router.message(
+    F.text,
+    ProfileStatesGroup.input_description_for_traffic_accident
+)
+async def description_for_traffic_accident(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    route = data["road"]  # получение дороги
+    longitude = data["longitude"]
+    latitude = data["latitude"]
+    level = data["reliability_level"]
+
+    request = await post_request_location_and_description(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        type_road=0,  # RoadAccident = 0
+        description=message.text,
+        level=level
     )
-    await state.clear()
+
+    if request:
+        await message.answer(mes_data['end_road_deficiencies'])
+        await message.answer(
+            text='Для повторного выбора нажмите /start',
+            reply_markup=return_to_start()
+        )
+        await state.clear()
+    else:
+        await message.answer(mes_data['bad_situation'])
+        await state.clear()
 
 
 # ------------------------------------------------------
@@ -354,6 +399,7 @@ async def road_deficiencies(
             callback_data=mes_data['type_road_deficiencies'][i]
         )
         markup.add(btn)
+        print(mes_data['type_road_deficiencies'][i])
     markup.adjust(1, 2, 1)
 
     await callback.message.answer(
@@ -361,6 +407,7 @@ async def road_deficiencies(
         reply_markup=markup.as_markup()
     )
     await state.set_state(ProfileStatesGroup.output_text_for_road_deficiencies)
+    print(f"road_deficiencies: Current state: {await state.get_state()}")
 
 
 @router.callback_query(
@@ -368,10 +415,14 @@ async def road_deficiencies(
     ProfileStatesGroup.output_text_for_road_deficiencies
 )
 async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMContext):
+    print(f"photo_road_deficiencies: Current state: {await state.get_state()}")
+    print(f"photo_road_deficiencies: Callback data: {callback.data}")
+
     data = await state.get_data()
     route = data["road"]  # получение дороги
     longitude = data["longitude"]
     latitude = data["latitude"]
+    level = data["reliability_level"]
 
     # post запрос
     list_road_deficiencies = await post_request_location_and_description(
@@ -379,7 +430,8 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
         longitude=longitude,
         latitude=latitude,
         type_road=1,
-        description=callback.data
+        description=callback.data,
+        level=level
     )
     print(list_road_deficiencies)
     # сохраняем id точки
@@ -387,7 +439,7 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
     await state.update_data({"id_for_road_deficiencies": point_id_for_road_deficiencies})
 
     await callback.message.answer(text=mes_data['photo_road_deficiencies'])
-    await state.set_state(ProfileStatesGroup.input_photo_for_road_deficiencies)  # вешаем cтатус ожидания фото
+    await state.set_state(ProfileStatesGroup.input_photo_for_road_deficiencies)
 
 
 @router.message(
@@ -448,6 +500,7 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
     description = message.text
     longitude = data["longitude"]
     latitude = data["latitude"]
+    level = data["reliability_level"]
 
     # post запрос
     post_result = await post_request_location_and_description(
@@ -455,7 +508,8 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
         longitude=longitude,
         latitude=latitude,
         description=description,
-        type_road=3
+        type_road=3,
+        level=level
     )
     print(post_result)
     point_id_for_illegal_actions = post_result['pointId']
@@ -517,6 +571,49 @@ async def input_photo_or_video(
             await state.set_state(ProfileStatesGroup.input_photo_for_illegal_actions)
         os.remove(f'{message.video.file_id}.mp4')
     await state.clear()
+
+
+# -------------------------------------------------------------------------------------
+
+@router.callback_query(F.data == 'option_4', ProfileStatesGroup.report)
+async def road_block(
+        callback: types.CallbackQuery,
+        state: FSMContext
+):
+    await callback.message.answer(text=mes_data['traffic_accident'])
+    await state.set_state(ProfileStatesGroup.input_description_for_road_block)
+
+
+@router.message(
+    F.text,
+    ProfileStatesGroup.input_description_for_road_block
+)
+async def description_for_traffic_accident(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    route = data["road"]  # получение дороги
+    longitude = data["longitude"]
+    latitude = data["latitude"]
+    level = data["reliability_level"]
+
+    request = await post_request_location_and_description(
+        road_name=route,
+        longitude=longitude,
+        latitude=latitude,
+        type_road=2,  # RoadBlock = 2
+        description=message.text,
+        level=level
+    )
+
+    if request:
+        await message.answer(mes_data['end_road_deficiencies'])
+        await message.answer(
+            text='Для повторного выбора нажмите /start',
+            reply_markup=return_to_start()
+        )
+        await state.clear()
+    else:
+        await message.answer(mes_data['bad_situation'])
+        await state.clear()
 
 
 # ---------------------------------------------------------------------------------------------
@@ -778,9 +875,9 @@ async def attractions(
     await state.clear()
 
 
-# Экстренная ситуация(type_6 / option_4) ------------------------------------------------------------------
+# Экстренная ситуация(type_6) ------------------------------------------------------------------
 @router.callback_query(
-    F.data.in_(callback_data['callback_dangerous_situation']),
+    F.data == 'type_6',
     ProfileStatesGroup.report
 )
 async def dangerous_situation(callback: types.CallbackQuery,):
