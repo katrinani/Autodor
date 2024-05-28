@@ -44,22 +44,22 @@ from filters.States import ProfileStatesGroup
 
 router = Router()
 # .. -> /usr/src/app/
-with open(r'C:\Users\админ\PycharmProjects\Autodor\config.json', 'r') as json_file:
+with open(r'/usr/src/app/config.json', 'r') as json_file:
     config = json.load(json_file)
     TOKEN = config["token"]
     WEB_SERVER_HOST = config["server_host"]
     WEBHOOK_PATH = config["webhook_path"]
     WEBHOOK_URL = config["webhook_url"]
 
-with open(r'C:\Users\админ\PycharmProjects\Autodor\recurses\text_for_message\data_for_mess.json',
+with open(r'/usr/src/app/recurses/text_for_message/data_for_mess.json',
           'r') as data_for_mess:
     mes_data = json.load(data_for_mess)
 
-with open(r'C:\Users\админ\PycharmProjects\Autodor\recurses\text_for_message\data_for_recognize.json',
+with open(r'/usr/src/app/recurses/text_for_message/data_for_recognize.json',
           'r') as data_for_recognize:
     recognize_data = json.load(data_for_recognize)
 
-with open(r'C:\Users\админ\PycharmProjects\Autodor\recurses\text_for_message\callback_data.json',
+with open(r'/usr/src/app/recurses/text_for_message/callback_data.json',
           'r') as callback_mes_data:
     callback_data = json.load(callback_mes_data)
 
@@ -725,8 +725,8 @@ async def gas_station(
     os.remove('map.png')
 
     await callback.message.answer(
-    text='Для просмотра других точек нажмите /start',
-    reply_markup=return_to_start()
+        text='Для просмотра других точек нажмите /start',
+        reply_markup=return_to_start()
     )
     await state.clear()
 
@@ -878,7 +878,7 @@ async def attractions(
 # Экстренная ситуация(type_6) ------------------------------------------------------------------
 @router.callback_query(
     F.data == 'type_6',
-    ProfileStatesGroup.report
+    ProfileStatesGroup.recognize
 )
 async def dangerous_situation(callback: types.CallbackQuery,):
     await callback.message.answer(
