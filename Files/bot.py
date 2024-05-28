@@ -907,7 +907,7 @@ async def main() -> None:
     logging.basicConfig(level=logging.INFO,
                         format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
                         handlers=[
-                            logging.FileHandler('../loging/bot.log'),
+                            logging.FileHandler('./loging/bot.log'),
                             logging.StreamHandler()
                         ])
 
