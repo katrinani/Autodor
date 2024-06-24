@@ -1,5 +1,4 @@
 # импорты из библиотеки aiogram
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardMarkup
 from aiogram import types
 from pydub import AudioSegment
@@ -7,34 +6,7 @@ import os
 import requests
 
 # импорты из файла request.py
-from request import (get_all_regions, get_request_audio)
-
-
-async def make_callback_regions() -> list:
-    """
-    C помощью запроса создает список из всех пришедших регонов
-    :return: callback: list - список регионов
-    """
-    request = await get_all_regions()
-    callback = []
-    for i in range(len(request['regions'])):
-        callback.append(request['regions'][i]['name'])
-    return callback
-
-
-# async def make_callback_route(region: str | None) -> list:
-#     """
-#     С помощью запроса создает список из всех пришедших дорог
-#     :return: callback: list - список дорог
-#     """
-#     if not region:
-#         request = await get_all_roads()
-#         callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
-#         return callback
-#     else:
-#         request = await get_roads_in_region(region)
-#         callback = [request['roads'][i]['roadName'] for i in range(len(request['roads']))]
-#         return callback
+from request import get_request_audio
 
 
 def btn_to_send_loc() -> ReplyKeyboardMarkup:

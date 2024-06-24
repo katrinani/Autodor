@@ -1,61 +1,48 @@
 import requests
-domain = 'http://87.242.87.68:5139'
+domain = 'http://213.171.29.33:5139'
 
 
-async def get_road_and_region(longitude, latitude):
-    url = f'{domain}/api/roads/nearest'
+async def get_road_and_region(longitude: float, latitude: float):
+    """
+    Вычисление ближайшей дороги и региона пользователя по координаам
+    :param longitude: float: долгота
+    :param latitude: float: ширина
+    :return: {"roadName": "string", "regionName": "string"}
+    """
+    url = f'{domain}/api/v1/TgBot/location'
     data = {
         'Coordinates.Longitude': longitude,
         'Coordinates.Latitude': latitude
     }
     response = requests.get(url, params=data)
-    return response.json()
-
-
-async def get_all_regions():
-    """
-    На вход ничего не идет
-    :return: {"regions": [{"name": "string"}]}
-    """
-    url = f'{domain}/api/regions'
-    response = requests.get(url)
-    return response.json()
-
-
-async def get_roads_in_region(
-    region_name: str
-):
-    """
-    :return:  {"roads": [{"roadName": "string"}]}
-    """
-    url = f'{domain}/api/regions/{region_name}/Roads'
-    response = requests.get(url)
+    if response.status_code != 200:
+        print(f'Error {response.status_code}: {response.text}')
+        return
     return response.json()
 
 
 # обьявления -------------------------------------------
 async def get_request_audio(file_id: str):
-    url = f"http://87.242.87.68:5139/api/advertisements/{file_id}/voice"
+    """
+    Получение озвучки для обьявления
+    :param file_id: str: id обьявления
+    :return: Возвращает массив байт файла озвучки объявления с указанным ID
+    """
+    url = f"{domain}/api/v1/TgBot/advertisements/{file_id}/voice"
     response = requests.get(url)
+    if response.status_code != 200:
+        print(f'Error {response.status_code}: {response.text}')
     return response
 
 
 # по области
-async def get_advertisements_for_region(
-        region_name: str
-):
+async def get_advertisements_for_region(region_name: str):
     """
-    :param region_name:  название региона, которое передается в url запроса
-    :return: {"advertisements": [
-    {
-      "id": "uuid",
-      "title": "string",
-      "description": "string", // Если менеджер его не заполнил, то просто придёт пустая строка
-      "regionName": "string"
-    }
-  ]}
+    Получение всех актуальных обьявлений, которые действуют для региона с указаным именем
+    :param region_name: str: название региона, которое передается в url запроса
+    :return: {"advertisements": [{"id": "uuid", "title": "string", "description": "string"}]}
     """
-    url = f'{domain}/api/regions/{region_name}/advertisements'
+    url = f'{domain}/api/v1/TgBot/regions/{region_name}/advertisements'
     print(url)
     response = requests.get(url)
     print(response)
@@ -66,19 +53,17 @@ async def get_advertisements_for_region(
 
 
 # по дороге
-async def get_request_urgent_message(
-        road_name: str
-):
+async def get_request_urgent_message(road_name: str):
     """
-    :param road_name: название дороги, которое передается в url запроса:
-    :return: {"advertisements": [{
-      "title": "string",
-      "description": "string", // может отсутствовать
-      "regionName": "string" // будет null
-        }]}
+    Получение всех актуальных обьявлений, которые действуют для дороги с указаным именем
+    :param road_name: str: название дороги, которое передается в url запроса:
+    :return: {"advertisements": [{"id": "uuid", "title": "string", "description": "string"}]}
     """
-    url = f'{domain}/api/Roads/{road_name}/advertisements'
+    url = f'{domain}/api/v1/TgBot/Roads/{road_name}/advertisements'
     response = requests.get(url)
+    if response.status_code != 200:
+        print(f'Error {response.status_code}: {response.text}')
+        return
     return response.json()
 
 
@@ -92,30 +77,31 @@ async def post_request_location_and_description(
         level: int
 ):
     """
-    :param road_name: название дороги
-    :param longitude: долгота
-    :param latitude: широта
-    :param type_road: тип точки(RoadDisadvantages/ThirdPartyIllegalActions)
-    :param description: тип повреждения/ описание действия
+    Cоздает новую не верифицированную точку
+    :param road_name: str: название дороги
+    :param longitude: float: долгота
+    :param latitude: float: широта
+    :param type_road: int: тип точки(RoadDisadvantages/ThirdPartyIllegalActions)
+    :param description: str: тип повреждения/ описание действия
+    :param level: int: уровень доверия
     :return: {"pointId": str}
     """
-    url = f'{domain}/api/UnverifiedPoints'
+    url = f'{domain}/api/v1/TgBot/UnverifiedPoints'
     data = {
-        'point': {
-            'type': type_road,
-            "reliabilityLevel": level,
-            'coordinates': {
-                'latitude': latitude,
-                'longitude': longitude
-            },
-            "road": {
-                'roadName': road_name
-            }
+        "coordinates": {
+            "latitude": latitude,
+            "longitude": longitude
         },
-        'description': description
+        "type": type_road,
+        "reliability": level,
+        "description": description,
+        "roadName": road_name
     }
     print(data)
     response = requests.post(url, json=data)
+    if response.status_code != 201:
+        print(f'Error {response.status_code}: {response.text}')
+        return False
     print(response.json())
     return response.json()
 
@@ -126,14 +112,15 @@ async def post_request_media(
         type_media: str
 ) -> bool:
     """
+    Прикрепляет файл (фото или видео) к не вверифицированной точке
     :param file_id: id файла, берущееся в качестве названия для файла
     :param point_id: id точки, к которой прикрепляется файл
-    :param type_media: расширение файла (.mp4 / .jpg )
-    :return: True (в случае статус кода 200) / False (в случает какой либо ошибки)
+    :param type_media: расширение файла (.mp4 / .jpg)
+    :return: True (в случае статус кода 201) / False (в случает какой либо ошибки)
     """
-    url = f'{domain}/api/UnverifiedPoints/{point_id}/file'
+    url = f'{domain}/api/v1/TgBot/UnverifiedPoints/{point_id}/file'
     fp = open(f'{file_id}.{type_media}', 'rb')
-    files = {'file': (f'{file_id}.{type_media}', fp, 'multipart/form-data', {})}
+    files = {'file': (f'{file_id}.{type_media}', fp, 'image/jpeg' if type_media == 'jpg' else 'video/mp4', {})}
     response = requests.post(url, files=files)
     print(response)
     fp.close()
@@ -149,19 +136,22 @@ async def get_request_for_dots(
         point_type: str
 ):
     """
+    Получение определенного кол-ва вер.точек на дороге в радиусе с типом
     :param road_name: название дороги
     :param longitude: долгота
     :param latitude: ширина
     :param point_type: тип отправляемой точки (Cafe, GasStation, CarService, RestPlace, InterestingPlace)
-    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},
-    "distanseFromUser": num}]}
+    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanseFromUser": num}]}
     """
-    url = f'{domain}/api/Roads/{road_name}/verifiedPoints/{point_type}'
+    url = f'{domain}/api/v1/TgBot/Roads/{road_name}/verifiedPoints/{point_type}'
     data = {
         'Coordinates.Longitude': longitude,
         'Coordinates.Latitude': latitude,
-        'PointsCount': 10,  # максимальное кол-во точек
-        'Radius': 50  # радиус для отправленных точек
+        'PointsCount': 10,
+        'Radius': 50
     }
     response = requests.get(url, params=data)
+    if response.status_code != 200:
+        print(f'Error {response.status_code}: {response.text}')
+        return
     return response.json()
