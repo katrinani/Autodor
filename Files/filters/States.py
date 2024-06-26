@@ -1,7 +1,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class ProfileStatesGroup(StatesGroup):
+class States(StatesGroup):
     text_or_voice = State()
 
     input_voice = State()
@@ -21,6 +21,12 @@ class ProfileStatesGroup(StatesGroup):
 
     input_photo_for_road_deficiencies = State()
     input_photo_for_illegal_actions = State()
+    input_photo_for_traffic_accident = State()
+    input_photo_for_road_block = State()
+    photo_sending_option_for_road_deficiencies = State()
+    photo_sending_option_for_illegal_actions = State()
+    photo_sending_option_for_traffic_accident = State()
+    photo_sending_option_for_road_block = State()
 
     output_text_for_road_deficiencies = State()
 

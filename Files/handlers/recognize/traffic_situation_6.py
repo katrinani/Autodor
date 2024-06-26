@@ -16,10 +16,10 @@ with open(r'../recurses/text_for_message/data_for_mess.json',
 
 
 @router.callback_query(
-    F.data == 'type_4',
+    F.data == 'type_6',
     States.recognize
 )
-async def parking_lot(
+async def traffic_situation(
         callback: types.CallbackQuery,
         state: FSMContext
 ):
@@ -29,16 +29,16 @@ async def parking_lot(
     longitude = data["longitude"]
     latitude = data["latitude"]
 
-    # запрос геолокаци мест с парковкой
-    list_parking_lot = await get_request_for_dots(
+    # TODO: изменить тип в запросе
+    list_traffic_situation = await get_request_for_dots(
         road_name=route,
         longitude=longitude,
         latitude=latitude,
-        point_type='Hotel'
+        point_type=''
     )
 
-    count = len(list_parking_lot['points'])  # сколько пришло точек
-    if not list_parking_lot:
+    count = len(list_traffic_situation['points'])  # сколько пришло точек
+    if not list_traffic_situation:
         await callback.message.answer(text=mes_data['bad_situation'])
         return
     elif count == 0:
@@ -47,13 +47,13 @@ async def parking_lot(
 
     text = ''
     for i in range(count):
-        name_parking_lot = list_parking_lot['points'][i]['name']
-        distance_parking_lot = round(list_parking_lot['points'][i]['distanceFromUser'], 2)
-        text += f"{i + 1}. {name_parking_lot} : {distance_parking_lot}км. от вас\n"
+        name_gas_station = list_traffic_situation['points'][i]['name']
+        distance_gas_station = round(list_traffic_situation['points'][i]['distanceFromUser'], 2)
+        text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
     await callback.message.answer(text=text)
 
     # вывод карты
-    load_map(longitude=longitude, latitude=latitude, list_dots=list_parking_lot, color='vv')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_traffic_situation, color='gr')
     file = FSInputFile('map.png')
     await callback.message.answer_photo(file)
     remove('map.png')

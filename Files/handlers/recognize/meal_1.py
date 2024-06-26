@@ -1,7 +1,7 @@
 from os import remove
 from json import load
 from aiogram import F, types, Router
-from Files.filters.States import ProfileStatesGroup
+from Files.filters.States import States
 from aiogram.fsm.context import FSMContext
 from Files.request import get_request_for_dots
 from Files.support_function import return_to_start
@@ -17,7 +17,7 @@ with open(r'../recurses/text_for_message/data_for_mess.json',
 
 @router.callback_query(
     F.data == 'type_1',
-    ProfileStatesGroup.recognize
+    States.recognize
 )
 async def meal(
         callback: types.CallbackQuery,

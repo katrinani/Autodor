@@ -6,13 +6,13 @@ from aiogram.types import FSInputFile
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from pydub import AudioSegment
-from Files.filters.States import ProfileStatesGroup
+from Files.filters.States import States
 from Files.request import (
     get_road_and_region,
     get_request_urgent_message,
     get_advertisements_for_region
 )
-from Files.support_function import btn_to_send_loc, concate_files
+from Files.support_function import btn_to_send_loc, concate_files, btn_yes_or_not
 
 router = Router()
 
@@ -24,12 +24,12 @@ with open(r'../recurses/text_for_message/data_for_mess.json',
 @router.message(Command('start'))
 async def start(message: types.Message, state: FSMContext):
     await message.answer(text=mes_data['start_talk'], reply_markup=btn_to_send_loc())
-    await state.set_state(ProfileStatesGroup.input_location)
+    await state.set_state(States.input_location)
 
 
 @router.message(
         F.location,
-        ProfileStatesGroup.input_location
+        States.input_location
     )
 async def location_confirmation(message: types.Message, state: FSMContext):
     if message.reply_to_message is None:
@@ -55,27 +55,20 @@ async def location_confirmation(message: types.Message, state: FSMContext):
         return
     elif not answer['roadName'] and not answer['regionName']:
         await message.answer('Вы слишком далеко от киллометрового столба. Попробуйте еще раз позже')
-        await state.set_state(ProfileStatesGroup.input_location)
+        await state.set_state(States.input_location)
         return
     # сохраняем место
     await state.update_data({"road": answer['roadName']})
     await state.update_data({"region": answer['regionName']})
 
-    # кнопки да/нет
-    markup = InlineKeyboardBuilder()
-    btn_1 = types.InlineKeyboardButton(text='Да', callback_data='yes')
-    btn_2 = types.InlineKeyboardButton(text='Нет', callback_data='no')
-    markup.add(btn_1, btn_2)
-    markup.adjust(2)
-
     text = f"Вы находитесь на дороге {answer['roadName']} в {answer['regionName']}. Верно?"
-    await message.answer(text=text, reply_markup=markup.as_markup())
-    await state.set_state(ProfileStatesGroup.text_or_voice)
+    await message.answer(text=text, reply_markup=btn_yes_or_not().as_markup())
+    await state.set_state(States.text_or_voice)
 
 
 @router.callback_query(
     F.data == 'no',
-    ProfileStatesGroup.text_or_voice
+    States.text_or_voice
 )
 async def retry_send_location(callback: types.CallbackQuery, state: FSMContext):
     print(callback)
@@ -83,12 +76,12 @@ async def retry_send_location(callback: types.CallbackQuery, state: FSMContext):
         text='Попробуйте еще раз отправить локацию',
         reply_markup=btn_to_send_loc()
     )
-    await state.set_state(ProfileStatesGroup.input_location)
+    await state.set_state(States.input_location)
 
 
 @router.callback_query(
     F.data == 'yes',
-    ProfileStatesGroup.text_or_voice
+    States.text_or_voice
 )
 async def text_or_voice(callback: types.CallbackQuery, state: FSMContext):
     markup = InlineKeyboardBuilder()
@@ -100,12 +93,12 @@ async def text_or_voice(callback: types.CallbackQuery, state: FSMContext):
         text=mes_data['text_or_voice'],
         reply_markup=markup.as_markup()
     )
-    await state.set_state(ProfileStatesGroup.advertisements)
+    await state.set_state(States.advertisements)
 
 
 @router.callback_query(
     F.data == 'text',
-    ProfileStatesGroup.advertisements
+    States.advertisements
 )
 async def regional_advertisements(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -183,4 +176,4 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
         text=mes_data['choose_action'],
         reply_markup=markup.as_markup()
     )
-    await state.set_state(ProfileStatesGroup.report_or_recognize)
+    await state.set_state(States.report_or_recognize)

@@ -1,6 +1,6 @@
 from json import load
 from aiogram import F, types, Router
-from Files.filters.States import ProfileStatesGroup
+from Files.filters.States import States
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -13,11 +13,11 @@ with open(r'../recurses/text_for_message/data_for_recognize.json',
 
 @router.callback_query(
     F.data == 'recognize',
-    ProfileStatesGroup.report_or_recognize
+    States.report_or_recognize
 )
 async def choose_que(callback: types.CallbackQuery, state: FSMContext):
     markup = InlineKeyboardBuilder()
-    for i in range(6):
+    for i in range(7):
         btn = types.InlineKeyboardButton(
             text=recognize_data['questions_for_recognize'][i],
             callback_data=f'type_{i + 1}'
@@ -27,4 +27,4 @@ async def choose_que(callback: types.CallbackQuery, state: FSMContext):
         text=recognize_data['recognize'],
         reply_markup=markup.as_markup()
     )
-    await state.set_state(ProfileStatesGroup.recognize)
+    await state.set_state(States.recognize)

@@ -1,5 +1,6 @@
 # импорты из библиотеки aiogram
 from aiogram.types import ReplyKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import types
 from pydub import AudioSegment
 import os
@@ -7,6 +8,16 @@ import requests
 
 # импорты из файла request.py
 from request import get_request_audio
+
+
+def btn_yes_or_not():
+    # кнопки да/нет
+    markup = InlineKeyboardBuilder()
+    btn_1 = types.InlineKeyboardButton(text='Да', callback_data='yes')
+    btn_2 = types.InlineKeyboardButton(text='Нет', callback_data='no')
+    markup.add(btn_1, btn_2)
+    markup.adjust(2)
+    return markup
 
 
 def btn_to_send_loc() -> ReplyKeyboardMarkup:

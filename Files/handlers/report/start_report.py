@@ -1,6 +1,6 @@
 from json import load
 from aiogram import F, types, Router
-from Files.filters.States import ProfileStatesGroup
+from Files.filters.States import States
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -13,7 +13,7 @@ with open(r'../recurses/text_for_message/data_for_mess.json',
 
 @router.callback_query(
     F.data == 'report',
-    ProfileStatesGroup.report_or_recognize
+    States.report_or_recognize
 )
 async def choose_report(callback: types.CallbackQuery, state: FSMContext):
     markup = InlineKeyboardBuilder()
@@ -27,4 +27,4 @@ async def choose_report(callback: types.CallbackQuery, state: FSMContext):
         text=mes_data['text_report'],
         reply_markup=markup.as_markup()
     )
-    await state.set_state(ProfileStatesGroup.report)
+    await state.set_state(States.report)

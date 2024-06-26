@@ -1,11 +1,11 @@
 from json import load
 from os import remove
 from aiogram import F, types, Router, Bot
-from Files.filters.States import ProfileStatesGroup
+from Files.filters.States import States
 from Files.filters.IsPhotoOrVideo import IsPhotoOrVideo
 from aiogram.fsm.context import FSMContext
 from Files.request import post_request_location_and_description, post_request_media
-from Files.support_function import return_to_start
+from Files.support_function import return_to_start, btn_yes_or_not
 
 router = Router()
 
@@ -14,7 +14,7 @@ with open(r'../recurses/text_for_message/data_for_mess.json',
     mes_data = load(data_for_mess)
 
 
-@router.callback_query(F.data == 'option_3', ProfileStatesGroup.report)
+@router.callback_query(F.data == 'option_3', States.report)
 async def illegal_actions(
         callback: types.CallbackQuery,
         state: FSMContext
@@ -22,12 +22,12 @@ async def illegal_actions(
     await callback.message.answer(text=mes_data['instructions_for_contact'])
 
     await callback.message.answer(text=mes_data['action_description'])
-    await state.set_state(ProfileStatesGroup.input_description_for_illegal_actions)
+    await state.set_state(States.input_description_for_illegal_actions)
 
 
 @router.message(
     F.text,
-    ProfileStatesGroup.input_description_for_illegal_actions
+    States.input_description_for_illegal_actions
 )
 async def input_photo_or_video(message: types.Message, state: FSMContext):
     # получение иформации
@@ -56,14 +56,31 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
     point_id_for_illegal_actions = post_result['pointId']
     # сохранение id точки
     await state.update_data({"id_for_illegal_actions": point_id_for_illegal_actions})
+    await message.answer(text=mes_data['photo_or_not'], reply_markup=btn_yes_or_not().as_markup())
+    await state.set_state(States.photo_sending_option_for_illegal_actions)
 
-    await message.answer(text=mes_data['media_of_illegal_actions'])
-    await state.set_state(ProfileStatesGroup.input_photo_for_illegal_actions)
+
+@router.callback_query(F.data == 'no', States.photo_sending_option_for_illegal_actions)
+async def photo_consent(
+        callback: types.CallbackQuery,
+        state: FSMContext
+):
+    await callback.message.answer(text=mes_data['lack_of_photo'])
+    await state.clear()
+
+
+@router.callback_query(F.data == 'yes', States.photo_sending_option_for_illegal_actions)
+async def photo_consent(
+        callback: types.CallbackQuery,
+        state: FSMContext
+):
+    await callback.message.answer(text=mes_data['media_of_illegal_actions'])
+    await state.set_state(States.input_photo_for_illegal_actions)
 
 
 @router.message(
     IsPhotoOrVideo(),
-    ProfileStatesGroup.input_photo_for_illegal_actions
+    States.input_photo_for_illegal_actions
 )
 async def input_photo_or_video(
         message: types.Message,
@@ -90,7 +107,7 @@ async def input_photo_or_video(
             await state.clear()
         else:
             await message.answer(text=mes_data['bad_situation'])
-            await state.set_state(ProfileStatesGroup.input_photo_for_illegal_actions)
+            await state.set_state(States.input_photo_for_illegal_actions)
         remove(f'{message.photo[-1].file_id}.jpg')
 
     elif message.video:
@@ -109,6 +126,6 @@ async def input_photo_or_video(
             await state.clear()
         else:
             await message.answer(text=mes_data['bad_situation'])
-            await state.set_state(ProfileStatesGroup.input_photo_for_illegal_actions)
+            await state.set_state(States.input_photo_for_illegal_actions)
         remove(f'{message.video.file_id}.mp4')
     await state.clear()
