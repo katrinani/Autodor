@@ -40,9 +40,9 @@ async def voice_processing(message: types.Message, state: FSMContext, bot: Bot):
 
     # запрос для отправки гс на ии
     skip_information = await get_audio_label(file_path)  # полученный ответ
-    await state.update_data({"to_do": skip_information[0]})
+    await state.update_data({"to_do": skip_information["label"]})
 
-    text = f"Вы хотите перейти к действию под названием: {skip_information[0]}. Верно?"
+    text = f"Вы хотите перейти к действию под названием: {skip_information['label']}. Верно?"
     markup = InlineKeyboardBuilder()
     btn_1 = types.InlineKeyboardButton(text="Да", callback_data="voice_good")
     btn_2 = types.InlineKeyboardButton(text="Нет", callback_data="voice_bad")
