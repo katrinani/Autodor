@@ -144,7 +144,7 @@ async def get_request_for_dots(
         "Coordinates.Longitude": longitude,
         "Coordinates.Latitude": latitude,
         "PointsCount": 10,
-        "Radius": 50,
+        "RadiusInKm": 50,
     }
     response = requests.get(url, params=data)
     if response.status_code != 200:
@@ -157,7 +157,7 @@ async def get_request_for_dots(
 
 
 async def get_audio_label(path_to_file: str) -> json:
-    url = "http://127.0.0.1:8080/classify/audio/road"
+    url = "http://127.0.0.1:8000/classify/audio/road"
     file = {"file": open(path_to_file, "rb")}
     response = requests.post(url, files=file)
     if response.status_code != 200:
