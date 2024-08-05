@@ -1,5 +1,6 @@
 import asyncio
 from json import load
+from os import environ
 from logging import basicConfig, INFO, FileHandler, StreamHandler
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
@@ -32,7 +33,8 @@ with open(r'../config.json', 'r') as json_file:
     TOKEN = config["token"]
     WEB_SERVER_HOST = config["server_host"]
     WEBHOOK_PATH = config["webhook_path"]
-    WEBHOOK_URL = config["webhook_url"]
+    # WEBHOOK_URL = config["webhook_url"]
+    WEBHOOK_URL = environ.get('WEBHOOK_URL')
 
 
 async def on_startup(bot: Bot) -> None:
