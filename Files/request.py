@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 
 domain = "http://213.171.29.33:5139"
@@ -16,11 +17,13 @@ async def get_road_and_region(longitude: float, latitude: float):
 
     try:
         response = requests.get(url, params=data)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
@@ -36,12 +39,13 @@ async def get_request_audio(file_id: str):
     url = f"{domain}/api/v1/TgBot/advertisements/{file_id}/voice"
     try:
         response = requests.get(url)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response
@@ -58,12 +62,13 @@ async def get_advertisements_for_region(region_name: str):
     print(url)
     try:
         response = requests.get(url)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
@@ -79,12 +84,13 @@ async def get_request_urgent_message(road_name: str):
     url = f"{domain}/api/v1/TgBot/Roads/{road_name}/advertisements"
     try:
         response = requests.get(url)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
@@ -120,12 +126,13 @@ async def post_request_location_and_description(
 
     try:
         response = requests.post(url, json=data)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 201:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
@@ -152,8 +159,9 @@ async def post_request_media(file_id: str, point_id: str, type_media: str) -> bo
 
     try:
         response = requests.post(url, files=files)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return False
 
     status = response.status_code == 201
@@ -181,12 +189,13 @@ async def get_request_for_dots(
     }
     try:
         response = requests.get(url, params=data)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
@@ -211,12 +220,13 @@ async def get_approved_point(
     }
     try:
         response = requests.get(url, params=body)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
@@ -229,12 +239,13 @@ async def get_audio_label(path_to_file: str) -> json:
 
     try:
         response = requests.post(url, files=file)
-        print(response)
-    except requests.exceptions.ConnectionError:
+        logging.info(f"Запрос: {response}")
+    except requests.exceptions.ConnectionError as error:
+        logging.error(f"Не удалось обратиться к серверу: {error}")
         return None
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
+        logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
     return response.json()
