@@ -4,7 +4,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import types
 from pydub import AudioSegment
 import os
-import requests
 
 # импорты из файла request.py
 from request import get_request_audio
@@ -56,7 +55,8 @@ async def concate_files(
     for i in range(count):
         file_path = f"{answer['advertisements'][i]['id']}-{callback}.ogg"
         r = await get_request_audio(answer["advertisements"][i]["id"])
-        if r.status_code == requests.codes.ok:
+
+        if r is not None:
             flag = True
             with open(file_path, "wb") as f:
                 f.write(r.content)

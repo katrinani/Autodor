@@ -37,12 +37,15 @@ async def meal(
         point_type='Cafe'
     )
 
-    count = len(list_meal['points'])  # сколько пришло точек
-    if not list_meal:
+    if list_meal is None:
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
-    elif count == 0:
+
+    count = len(list_meal['points'])  # сколько пришло точек
+    if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await state.clear()
         return
 
     text = ''

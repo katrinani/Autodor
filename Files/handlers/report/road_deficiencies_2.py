@@ -66,11 +66,11 @@ async def photo_road_deficiencies(callback: types.CallbackQuery, state: FSMConte
         description=callback.data,
         level=level
     )
-    if not list_road_deficiencies:
+    if list_road_deficiencies is None:
         await callback.message.answer(mes_data['bad_situation'])
         await state.clear()
         return
-    print(list_road_deficiencies)
+
     # сохраняем id точки
     point_id_for_road_deficiencies = list_road_deficiencies['pointId']
     await state.update_data({"id_for_road_deficiencies": point_id_for_road_deficiencies})

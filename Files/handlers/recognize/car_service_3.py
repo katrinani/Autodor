@@ -37,12 +37,15 @@ async def car_service(
         point_type='CarService'
     )
 
-    count = len(list_car_service['points'])  # сколько пришло точек
-    if not list_car_service:
+    if list_car_service is None:
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
-    elif count == 0:
+
+    count = len(list_car_service['points'])  # сколько пришло точек
+    if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await state.clear()
         return
 
     text = ''

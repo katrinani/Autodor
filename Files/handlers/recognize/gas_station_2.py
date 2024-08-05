@@ -36,12 +36,15 @@ async def gas_station(
         point_type='GasStation'
     )
 
-    count = len(list_gas_station['points'])  # сколько пришло точек
-    if not list_gas_station:
+    if list_gas_station is None:
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
-    elif count == 0:
+
+    count = len(list_gas_station['points'])  # сколько пришло точек
+    if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await state.clear()
         return
 
     text = ''

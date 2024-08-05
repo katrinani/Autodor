@@ -41,11 +41,11 @@ async def description_for_traffic_accident(message: types.Message, state: FSMCon
         level=level
     )
 
-    if not request:
+    if request is None:
         await message.answer(mes_data['bad_situation'])
         await state.clear()
         return
-    print(request)
+
     point_id_for_traffic_accident = request['pointId']
     # сохранение id точки
     await state.update_data({"id_for_illegal_actions": point_id_for_traffic_accident})

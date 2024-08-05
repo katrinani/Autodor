@@ -37,12 +37,15 @@ async def parking_lot(
         point_type='Hotel'
     )
 
-    count = len(list_parking_lot['points'])  # сколько пришло точек
-    if not list_parking_lot:
+    if list_parking_lot is None:
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
-    elif count == 0:
+
+    count = len(list_parking_lot['points'])  # сколько пришло точек
+    if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await state.clear()
         return
 
     text = ''

@@ -50,13 +50,16 @@ async def location_confirmation(message: types.Message, state: FSMContext):
         latitude=latitude
     )
     print(answer)
-    if not answer:
+    if answer is None:
+        # в случае если не получилось обратиться к бэку или статус код 4хх-5хх
         await message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
     elif not answer['roadName'] and not answer['regionName']:
         await message.answer('Вы слишком далеко от киллометрового столба. Попробуйте еще раз позже')
         await state.set_state(States.input_location)
         return
+
     # сохраняем место
     await state.update_data({"road": answer['roadName']})
     await state.update_data({"region": answer['regionName']})
@@ -107,8 +110,11 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
 
     # запрос на обьяления по области
     request_advertisements = await get_advertisements_for_region(region_name=region)
-    if not request_advertisements:
+    if request_advertisements is None:
+        # в случае если не получилось обратиться к бэку или статус код 4хх-5хх
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
+        return
     elif len(request_advertisements['advertisements']) == 0:
         await callback.message.answer(text=mes_data['good_situation'])
     else:
@@ -139,8 +145,11 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
 
     # обьявление для дороги
     answer = await get_request_urgent_message(road_name=route)
-    if not answer:
+    if answer is None:
+        # в случае если не получилось обратиться к бэку или статус код 4хх-5хх
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
+        return
     elif len(answer['advertisements']) == 0:
         await callback.message.answer(text=mes_data['good_situation'])
     else:

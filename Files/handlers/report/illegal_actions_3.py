@@ -48,11 +48,11 @@ async def input_photo_or_video(message: types.Message, state: FSMContext):
         type_road=3,
         level=level
     )
-    if not post_result:
+    if post_result is None:
         await message.answer(mes_data['bad_situation'])
         await state.clear()
         return
-    print(post_result)
+
     point_id_for_illegal_actions = post_result['pointId']
     # сохранение id точки
     await state.update_data({"id_for_illegal_actions": point_id_for_illegal_actions})

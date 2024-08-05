@@ -3,7 +3,7 @@ from json import load
 from aiogram import F, types, Router
 from Files.filters.States import States
 from aiogram.fsm.context import FSMContext
-from Files.request import get_request_for_dots
+from Files.request import get_approved_point
 from Files.support_function import return_to_start
 from aiogram.types import FSInputFile
 from Files.map import load_map
@@ -29,20 +29,21 @@ async def traffic_situation(
     longitude = data["longitude"]
     latitude = data["latitude"]
 
-    # TODO: изменить тип в запросе
-    list_traffic_situation = await get_request_for_dots(
+    list_traffic_situation = await get_approved_point(
         road_name=route,
         longitude=longitude,
-        latitude=latitude,
-        point_type=''
+        latitude=latitude
     )
 
-    count = len(list_traffic_situation['points'])  # сколько пришло точек
-    if not list_traffic_situation:
+    if list_traffic_situation is None:
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
-    elif count == 0:
+
+    count = len(list_traffic_situation['points'])  # сколько пришло точек
+    if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await state.clear()
         return
 
     text = ''

@@ -13,10 +13,16 @@ async def get_road_and_region(longitude: float, latitude: float):
     """
     url = f"{domain}/api/v1/TgBot/location"
     data = {"Coordinates.Longitude": longitude, "Coordinates.Latitude": latitude}
-    response = requests.get(url, params=data)
+
+    try:
+        response = requests.get(url, params=data)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 200:
         print(f"Error {response.status_code}: {response.text}")
-        return
+        return None
+
     return response.json()
 
 
@@ -28,9 +34,16 @@ async def get_request_audio(file_id: str):
     :return: Возвращает массив байт файла озвучки объявления с указанным ID
     """
     url = f"{domain}/api/v1/TgBot/advertisements/{file_id}/voice"
-    response = requests.get(url)
+    try:
+        response = requests.get(url)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 200:
         print(f"Error {response.status_code}: {response.text}")
+        return None
+
     return response
 
 
@@ -43,11 +56,16 @@ async def get_advertisements_for_region(region_name: str):
     """
     url = f"{domain}/api/v1/TgBot/regions/{region_name}/advertisements"
     print(url)
-    response = requests.get(url)
-    print(response)
+    try:
+        response = requests.get(url)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 200:
         print(f"Error {response.status_code}: {response.text}")
-        return
+        return None
+
     return response.json()
 
 
@@ -59,10 +77,16 @@ async def get_request_urgent_message(road_name: str):
     :return: {"advertisements": [{"id": "uuid", "title": "string", "description": "string"}]}
     """
     url = f"{domain}/api/v1/TgBot/Roads/{road_name}/advertisements"
-    response = requests.get(url)
+    try:
+        response = requests.get(url)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 200:
         print(f"Error {response.status_code}: {response.text}")
-        return
+        return None
+
     return response.json()
 
 
@@ -93,12 +117,17 @@ async def post_request_location_and_description(
         "description": description,
         "roadName": road_name,
     }
-    print(data)
-    response = requests.post(url, json=data)
+
+    try:
+        response = requests.post(url, json=data)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 201:
         print(f"Error {response.status_code}: {response.text}")
-        return False
-    print(response.json())
+        return None
+
     return response.json()
 
 
@@ -111,18 +140,22 @@ async def post_request_media(file_id: str, point_id: str, type_media: str) -> bo
     :return: True (в случае статус кода 201) / False (в случает какой либо ошибки)
     """
     url = f"{domain}/api/v1/TgBot/UnverifiedPoints/{point_id}/file"
-    fp = open(f"{file_id}.{type_media}", "rb")
-    files = {
-        "file": (
-            f"{file_id}.{type_media}",
-            fp,
-            "image/jpeg" if type_media == "jpg" else "video/mp4",
-            {},
-        )
-    }
-    response = requests.post(url, files=files)
-    print(response)
-    fp.close()
+    with open(f"{file_id}.{type_media}", "rb") as fp:
+        files = {
+            "file": (
+                f"{file_id}.{type_media}",
+                fp,
+                "image/jpeg" if type_media == "jpg" else "video/mp4",
+                {},
+            )
+        }
+
+    try:
+        response = requests.post(url, files=files)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return False
+
     status = response.status_code == 201
     return status
 
@@ -137,7 +170,7 @@ async def get_request_for_dots(
     :param longitude: долгота
     :param latitude: ширина
     :param point_type: тип отправляемой точки (Cafe, GasStation, CarService, RestPlace, InterestingPlace)
-    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanseFromUser": num}]}
+    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanceFromUser": num}]}
     """
     url = f"{domain}/api/v1/TgBot/Roads/{road_name}/verifiedPoints/{point_type}"
     data = {
@@ -146,21 +179,62 @@ async def get_request_for_dots(
         "PointsCount": 10,
         "RadiusInKm": 50,
     }
-    response = requests.get(url, params=data)
+    try:
+        response = requests.get(url, params=data)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 200:
         print(f"Error {response.status_code}: {response.text}")
-        return
+        return None
+
+    return response.json()
+
+
+async def get_approved_point(
+        road_name: str, longitude: float, latitude: float
+):
+    """
+    Получение всех подтвержденных точек в радиусе от пользователя
+    :param road_name: название дороги
+    :param longitude: долгота
+    :param latitude: ширина
+    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanceFromUserInKm": num}]}
+    """
+    url = f"{domain}/api/v1/TgBot/Roads/{road_name}/approved-points"
+    body = {
+        "Coordinates.Longitude": longitude,
+        "Coordinates.Latitude": latitude,
+        "PointsCount": 10,
+        "RadiusInKm": 50,
+    }
+    try:
+        response = requests.get(url, params=body)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
+    if response.status_code != 200:
+        print(f"Error {response.status_code}: {response.text}")
+        return None
+
     return response.json()
 
 
 # ветка "гс" --------------------------------------------------
-
-
 async def get_audio_label(path_to_file: str) -> json:
-    url = "http://127.0.0.1:8000/classify/audio/road"
+    url = "{domain}/classify/audio/road"
     file = {"file": open(path_to_file, "rb")}
-    response = requests.post(url, files=file)
+
+    try:
+        response = requests.post(url, files=file)
+        print(response)
+    except requests.exceptions.ConnectionError:
+        return None
+
     if response.status_code != 200:
         print(f"Error {response.status_code}: {response.text}")
-        return
+        return None
+
     return response.json()

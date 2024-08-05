@@ -37,12 +37,15 @@ async def attractions(
         point_type='Event'
     )
 
-    count = len(list_attractions['points'])  # сколько пришло точек
-    if not list_attractions:
+    if list_attractions is None:
         await callback.message.answer(text=mes_data['bad_situation'])
+        await state.clear()
         return
-    elif count == 0:
+
+    count = len(list_attractions['points'])  # сколько пришло точек
+    if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await state.clear()
         return
 
     text = ''
