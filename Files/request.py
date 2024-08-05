@@ -23,6 +23,8 @@ async def get_road_and_region(longitude: float, latitude: float):
         return None
 
     if response.status_code != 200:
+        if response.status_code == 404:
+            return None, response.json()["detail"]
         logging.warning(f"Возвращение со статусом {response.status_code}: {response.text}")
         return None
 
@@ -103,7 +105,7 @@ async def post_request_location_and_description(
     latitude: float,
     type_road: int,
     description: str,
-    level: int,
+    level: bool,
 ):
     """
     Cоздает новую не верифицированную точку
@@ -119,7 +121,7 @@ async def post_request_location_and_description(
     data = {
         "coordinates": {"latitude": latitude, "longitude": longitude},
         "type": type_road,
-        "reliability": level,
+        "isCurrentLocation": level,
         "description": description,
         "roadName": road_name,
     }
@@ -178,7 +180,7 @@ async def get_request_for_dots(
     :param longitude: долгота
     :param latitude: ширина
     :param point_type: тип отправляемой точки (Cafe, GasStation, CarService, RestPlace, InterestingPlace)
-    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanceFromUser": num}]}
+    :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanceFromUser": num, "description": "string"}]}
     """
     url = f"{domain}/api/v1/TgBot/Roads/{road_name}/verifiedPoints/{point_type}"
     data = {

@@ -52,7 +52,8 @@ async def attractions(
     for i in range(count):
         name_attractions = list_attractions['points'][i]['name']
         distance_attractions = round(list_attractions['points'][i]['distanceFromUser'], 2)
-        text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас\n"
+        description = list_attractions['points'][i]['description']
+        text += f"{i + 1}. {name_attractions} : {distance_attractions}км. от вас\n {description}\n"
     await callback.message.answer(text=text)
 
     # вывод карты

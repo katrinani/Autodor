@@ -34,10 +34,10 @@ async def start(message: types.Message, state: FSMContext):
 async def location_confirmation(message: types.Message, state: FSMContext):
     if message.reply_to_message is None:
         print('Самостоятельно отправленная локация')
-        await state.update_data({"reliability_level": 2})
+        await state.update_data({"reliability_level": False})
     else:
         print('Локация через кнопку')
-        await state.update_data({"reliability_level": 1})
+        await state.update_data({"reliability_level": True})
     longitude = message.location.longitude
     latitude = message.location.latitude
     # сохраняем локацию
@@ -55,8 +55,9 @@ async def location_confirmation(message: types.Message, state: FSMContext):
         await message.answer(text=mes_data['bad_situation'])
         await state.clear()
         return
-    elif not answer['roadName'] and not answer['regionName']:
-        await message.answer('Вы слишком далеко от киллометрового столба. Попробуйте еще раз позже')
+    elif len(answer) == 2:
+        await message.answer(answer[1])
+        await message.answer("Попробуйте отправить еще раз позже")
         await state.set_state(States.input_location)
         return
 

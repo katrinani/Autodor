@@ -49,7 +49,7 @@ async def traffic_situation(
     text = ''
     for i in range(count):
         name_gas_station = list_traffic_situation['points'][i]['name']
-        distance_gas_station = round(list_traffic_situation['points'][i]['distanceFromUser'], 2)
+        distance_gas_station = round(list_traffic_situation['points'][i]['distanceFromUserInKm'], 2)
         text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
     await callback.message.answer(text=text)
 
