@@ -33,8 +33,8 @@ with open(r'../config.json', 'r') as json_file:
     TOKEN = config["token"]
     WEB_SERVER_HOST = config["server_host"]
     WEBHOOK_PATH = config["webhook_path"]
-    WEBHOOK_URL = config["webhook_url"]
-    # WEBHOOK_URL = environ.get('WEBHOOK_URL')
+    # WEBHOOK_URL = config["webhook_url"]
+    WEBHOOK_URL = environ.get('WEBHOOK_URL')
 
 
 async def on_startup(bot: Bot) -> None:

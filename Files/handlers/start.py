@@ -55,15 +55,15 @@ async def location_confirmation(message: types.Message, state: FSMContext):
         await message.answer(text=mes_data['bad_situation'])
         await state.clear()
         return
-    elif len(answer) == 2:
+    try:
+        # сохраняем место
+        await state.update_data({"road": answer['roadName']})
+        await state.update_data({"region": answer['regionName']})
+    except KeyError:
         await message.answer(answer[1])
         await message.answer("Попробуйте отправить еще раз позже")
         await state.set_state(States.input_location)
         return
-
-    # сохраняем место
-    await state.update_data({"road": answer['roadName']})
-    await state.update_data({"region": answer['regionName']})
 
     text = f"Вы находитесь на дороге {answer['roadName']} в {answer['regionName']}. Верно?"
     await message.answer(text=text, reply_markup=btn_yes_or_not().as_markup())
@@ -117,7 +117,7 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
         await state.clear()
         return
     elif len(request_advertisements['advertisements']) == 0:
-        await callback.message.answer(text=mes_data['good_situation'])
+        await callback.message.answer(text=mes_data['good_situation_for_region'])
     else:
         print(request_advertisements)
         count = len(request_advertisements['advertisements'])
@@ -152,7 +152,7 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
         await state.clear()
         return
     elif len(answer['advertisements']) == 0:
-        await callback.message.answer(text=mes_data['good_situation'])
+        await callback.message.answer(text=mes_data['good_situation_for_route'])
     else:
         print(answer)
         count = len(answer['advertisements'])

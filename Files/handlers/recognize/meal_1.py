@@ -45,6 +45,10 @@ async def meal(
     count = len(list_meal['points'])  # сколько пришло точек
     if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
+        await callback.message.answer(
+            text='Для просмотра других точек нажмите /start',
+            reply_markup=return_to_start()
+        )
         await state.clear()
         return
 

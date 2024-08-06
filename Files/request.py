@@ -149,15 +149,15 @@ async def post_request_media(file_id: str, point_id: str, type_media: str) -> bo
     :return: True (в случае статус кода 201) / False (в случает какой либо ошибки)
     """
     url = f"{domain}/api/v1/TgBot/UnverifiedPoints/{point_id}/file"
-    with open(f"{file_id}.{type_media}", "rb") as fp:
-        files = {
-            "file": (
-                f"{file_id}.{type_media}",
-                fp,
-                "image/jpeg" if type_media == "jpg" else "video/mp4",
-                {},
-            )
-        }
+    fp = open(f"{file_id}.{type_media}", "rb")
+    files = {
+        "file": (
+            f"{file_id}.{type_media}",
+            fp,
+            "image/jpeg" if type_media == "jpg" else "video/mp4",
+            {},
+        )
+    }
 
     try:
         response = requests.post(url, files=files)
@@ -165,7 +165,7 @@ async def post_request_media(file_id: str, point_id: str, type_media: str) -> bo
     except requests.exceptions.ConnectionError as error:
         logging.error(f"Не удалось обратиться к серверу: {error}")
         return False
-
+    fp.close()
     status = response.status_code == 201
     return status
 
@@ -220,6 +220,7 @@ async def get_approved_point(
         "PointsCount": 10,
         "RadiusInKm": 50,
     }
+
     try:
         response = requests.get(url, params=body)
         logging.info(f"Запрос: {response}")
