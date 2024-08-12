@@ -11,7 +11,8 @@ def load_map(
         longitude: float,
         latitude: float,
         list_dots: dict,
-        color: str
+        color: str,
+        key: str = "points"
 ):
     map_request = ("http://static-maps.yandex.ru/1.x/?ll={ll}&z={z}&l={type}&pt={pt}~".
                    format(ll=lon_lat(lon=longitude, lat=latitude),
@@ -21,15 +22,15 @@ def load_map(
                           )
                    )
     map_request += ""
-    count = len(list_dots['points'])
+    count = len(list_dots[key])
     for i in range(count):
         if i < (count - 1):
-            lon = list_dots['points'][i]['coordinates']['longitude']
-            lat = list_dots['points'][i]['coordinates']['latitude']
+            lon = list_dots[key][i]['coordinates']['longitude']
+            lat = list_dots[key][i]['coordinates']['latitude']
             map_request += lon_lat(lon=lon, lat=lat) + f',pm2{color}m{i + 1}' + '~'
         else:
-            lon = list_dots['points'][i]['coordinates']['longitude']
-            lat = list_dots['points'][i]['coordinates']['latitude']
+            lon = list_dots[key][i]['coordinates']['longitude']
+            lat = list_dots[key][i]['coordinates']['latitude']
             map_request += lon_lat(lon=lon, lat=lat) + f',pm2{color}m{i + 1}'
 
     response = requests.get(map_request)

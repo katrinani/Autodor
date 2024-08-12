@@ -40,7 +40,7 @@ async def traffic_situation(
         await state.clear()
         return
 
-    count = len(list_traffic_situation['points'])  # сколько пришло точек
+    count = len(list_traffic_situation['approvedPoints'])  # сколько пришло точек
     if count == 0:
         await callback.message.answer('К сожалению ближайших к вам точек нет')
         await callback.message.answer(
@@ -52,13 +52,13 @@ async def traffic_situation(
 
     text = ''
     for i in range(count):
-        name_gas_station = list_traffic_situation['points'][i]['name']
-        distance_gas_station = round(list_traffic_situation['points'][i]['distanceFromUserInKm'], 2)
+        name_gas_station = list_traffic_situation['approvedPoints'][i]['name']
+        distance_gas_station = round(list_traffic_situation['approvedPoints'][i]['distanceFromUserInKm'], 2)
         text += f"{i + 1}. {name_gas_station} : {distance_gas_station}км. от вас\n"
     await callback.message.answer(text=text)
 
     # вывод карты
-    load_map(longitude=longitude, latitude=latitude, list_dots=list_traffic_situation, color='gr')
+    load_map(longitude=longitude, latitude=latitude, list_dots=list_traffic_situation, color='gr', key="approvedPoints")
     file = FSInputFile('map.png')
     await callback.message.answer_photo(file)
     remove('map.png')
