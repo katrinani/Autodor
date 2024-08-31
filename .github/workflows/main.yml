@@ -26,4 +26,4 @@ jobs:
           context: .
           file: "Dockerfile"
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/"название образа":"тэг этой версии образа"
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/продовый_образ:версия_1.0
