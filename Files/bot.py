@@ -26,11 +26,11 @@ from handlers.report import (
 from handlers.voice import voice
 from handlers import start
 
-# TODO: сменить .. -> /usr/src/app/ и изменить в конфиге порты
 
 with open(r'../config.json', 'r') as json_file:
     config = load(json_file)
-    TOKEN = config["token"]
+    # TOKEN = config["token"]
+    TOKEN = environ.get('TOKEN')
     WEB_SERVER_HOST = config["server_host"]
     WEBHOOK_PATH = config["webhook_path"]
     # WEBHOOK_URL = config["webhook_url"]

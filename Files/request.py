@@ -1,8 +1,10 @@
 import json
 import logging
 import requests
+from os import environ
 
-domain = "http://213.171.29.33:5139"
+url_for_backend = environ.get('BACKEND_URL')
+url_for_ai = environ.get('AI_URL')
 
 
 async def get_road_and_region(longitude: float, latitude: float):
@@ -12,7 +14,7 @@ async def get_road_and_region(longitude: float, latitude: float):
     :param latitude: float: ширина
     :return: {"roadName": "string", "regionName": "string"}
     """
-    url = f"{domain}/api/v1/TgBot/location"
+    url = f"{url_for_backend}/api/v1/TgBot/location"
     data = {"Coordinates.Longitude": longitude, "Coordinates.Latitude": latitude}
 
     try:
@@ -38,7 +40,7 @@ async def get_request_audio(file_id: str):
     :param file_id: str: id обьявления
     :return: Возвращает массив байт файла озвучки объявления с указанным ID
     """
-    url = f"{domain}/api/v1/TgBot/advertisements/{file_id}/voice"
+    url = f"{url_for_backend}/api/v1/TgBot/advertisements/{file_id}/voice"
     try:
         response = requests.get(url)
         logging.info(f"Запрос: {response}")
@@ -60,7 +62,7 @@ async def get_advertisements_for_region(region_name: str):
     :param region_name: str: название региона, которое передается в url запроса
     :return: {"advertisements": [{"id": "uuid", "title": "string", "description": "string"}]}
     """
-    url = f"{domain}/api/v1/TgBot/regions/{region_name}/advertisements"
+    url = f"{url_for_backend}/api/v1/TgBot/regions/{region_name}/advertisements"
     print(url)
     try:
         response = requests.get(url)
@@ -83,7 +85,7 @@ async def get_request_urgent_message(road_name: str):
     :param road_name: str: название дороги, которое передается в url запроса:
     :return: {"advertisements": [{"id": "uuid", "title": "string", "description": "string"}]}
     """
-    url = f"{domain}/api/v1/TgBot/Roads/{road_name}/advertisements"
+    url = f"{url_for_backend}/api/v1/TgBot/Roads/{road_name}/advertisements"
     try:
         response = requests.get(url)
         logging.info(f"Запрос: {response}")
@@ -117,7 +119,7 @@ async def post_request_location_and_description(
     :param level: int: уровень доверия
     :return: {"pointId": str}
     """
-    url = f"{domain}/api/v1/TgBot/UnverifiedPoints"
+    url = f"{url_for_backend}/api/v1/TgBot/UnverifiedPoints"
     data = {
         "coordinates": {"latitude": latitude, "longitude": longitude},
         "type": type_road,
@@ -148,7 +150,7 @@ async def post_request_media(file_id: str, point_id: str, type_media: str) -> bo
     :param type_media: расширение файла (.mp4 / .jpg)
     :return: True (в случае статус кода 201) / False (в случает какой либо ошибки)
     """
-    url = f"{domain}/api/v1/TgBot/UnverifiedPoints/{point_id}/file"
+    url = f"{url_for_backend}/api/v1/TgBot/UnverifiedPoints/{point_id}/file"
     fp = open(f"{file_id}.{type_media}", "rb")
     files = {
         "file": (
@@ -182,7 +184,7 @@ async def get_request_for_dots(
     :param point_type: тип отправляемой точки (Cafe, GasStation, CarService, RestPlace, InterestingPlace)
     :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanceFromUser": num, "description": "string"}]}
     """
-    url = f"{domain}/api/v1/TgBot/Roads/{road_name}/verifiedPoints/{point_type}"
+    url = f"{url_for_backend}/api/v1/TgBot/Roads/{road_name}/verifiedPoints/{point_type}"
     data = {
         "Coordinates.Longitude": longitude,
         "Coordinates.Latitude": latitude,
@@ -213,7 +215,7 @@ async def get_approved_point(
     :param latitude: ширина
     :return: {"points": [{"name": str, "type": num, "coordinates": {"latitude": num, "longitude": num},"distanceFromUserInKm": num}]}
     """
-    url = f"{domain}/api/v1/TgBot/Roads/{road_name}/approved-points"
+    url = f"{url_for_backend}/api/v1/TgBot/Roads/{road_name}/approved-points"
     body = {
         "Coordinates.Longitude": longitude,
         "Coordinates.Latitude": latitude,
@@ -237,7 +239,7 @@ async def get_approved_point(
 
 # ветка "гс" --------------------------------------------------
 async def get_audio_label(path_to_file: str) -> json:
-    url = "{domain}/classify/audio/road"
+    url = f"{url_for_ai}/classify/audio/road"
     file = {"file": open(path_to_file, "rb")}
 
     try:
