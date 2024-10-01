@@ -27,7 +27,7 @@ from handlers.voice import voice
 from handlers import start
 
 
-with open(r'../config.json', 'r') as json_file:
+with open(r'/usr/src/app/config.json', 'r') as json_file:
     config = load(json_file)
     # TOKEN = config["token"]
     TOKEN = environ.get('TOKEN')
