@@ -1,6 +1,6 @@
 import asyncio
 from json import load
-from os import environ
+from os import environ, path, makedirs
 from logging import basicConfig, INFO, FileHandler, StreamHandler
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
@@ -61,6 +61,16 @@ async def main() -> None:
     dp.include_router(traffic_accident_1.router)
 
     dp.include_router(voice.router)
+
+    log_path = '/usr/src/app/loging/bot.log'
+
+    # Проверяем существует ли файл
+    if not path.exists(log_path):
+        makedirs(path.dirname(log_path), exist_ok=True)
+        # Создаем файл
+        with open(log_path, 'w') as f:
+            # Можно записать что-то в файл
+            f.write('Log started\n')
 
     # Настраиваем логирование
     basicConfig(level=INFO,

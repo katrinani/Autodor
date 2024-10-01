@@ -36,7 +36,7 @@ def load_map(
     response = requests.get(map_request)
 
     # Запись полученного изображения в файл.
-    map_file = "map.png"
+    map_file = "/usr/src/app/map.png"
     try:
         with open(map_file, "wb") as file:
             file.write(response.content)

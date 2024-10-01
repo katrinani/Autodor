@@ -151,7 +151,7 @@ async def post_request_media(file_id: str, point_id: str, type_media: str) -> bo
     :return: True (в случае статус кода 201) / False (в случает какой либо ошибки)
     """
     url = f"{url_for_backend}/api/v1/TgBot/UnverifiedPoints/{point_id}/file"
-    fp = open(f"{file_id}.{type_media}", "rb")
+    fp = open(f"/usr/src/app/{file_id}.{type_media}", "rb")
     files = {
         "file": (
             f"{file_id}.{type_media}",
