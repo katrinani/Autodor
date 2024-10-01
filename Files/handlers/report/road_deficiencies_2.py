@@ -9,11 +9,11 @@ from support_function import return_to_start, btn_yes_or_not
 
 router = Router()
 
-with open(r'../recurses/text_for_message/data_for_mess.json',
+with open(r'/usr/src/app/recurses/text_for_message/data_for_mess.json',
           'r') as data_for_mess:
     mes_data = load(data_for_mess)
 
-with open(r'../recurses/text_for_message/callback_data.json',
+with open(r'/usr/src/app/recurses/text_for_message/callback_data.json',
           'r') as callback_mes_data:
     callback_data = load(callback_mes_data)
 

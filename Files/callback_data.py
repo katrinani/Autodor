@@ -28,5 +28,5 @@ data = {
     "callback_map_for_attractions": [f'location_attractions_{i}' for i in range(10)]
 }
 
-with open('../recurses/text_for_message/callback_data.json', 'w') as file:
+with open('/usr/src/app/recurses/text_for_message/callback_data.json', 'w') as file:
     json.dump(data, file)

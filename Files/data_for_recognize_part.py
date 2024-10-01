@@ -34,5 +34,5 @@ data_for_mess = {
     """
 }
 
-with open('../recurses/text_for_message/data_for_recognize.json', 'w') as file:
+with open('/usr/src/app/recurses/text_for_message/data_for_recognize.json', 'w') as file:
     json.dump(data_for_mess, file)

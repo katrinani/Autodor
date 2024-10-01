@@ -6,7 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 router = Router()
 
-with open(r'../recurses/text_for_message/data_for_recognize.json',
+with open(r'/usr/src/app/recurses/text_for_message/data_for_recognize.json',
           'r') as data_for_recognize:
     recognize_data = load(data_for_recognize)
 

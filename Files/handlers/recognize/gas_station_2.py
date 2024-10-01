@@ -10,7 +10,7 @@ from map import load_map
 
 router = Router()
 
-with open(r'../recurses/text_for_message/data_for_mess.json',
+with open(r'/usr/src/app/recurses/text_for_message/data_for_mess.json',
           'r') as data_for_mess:
     mes_data = load(data_for_mess)
 
