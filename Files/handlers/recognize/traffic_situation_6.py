@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from request import get_approved_point
 from support_function import return_to_start
 from aiogram.types import FSInputFile
-from Autodor.map import load_map
+from map import load_map
 
 router = Router()
 
