@@ -66,7 +66,7 @@ async def main() -> None:
     basicConfig(level=INFO,
                 format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
                 handlers=[
-                    FileHandler('../loging/bot.log'),
+                    FileHandler('/usr/src/app/loging/bot.log'),
                     StreamHandler()
                 ])
 
