@@ -1,7 +1,7 @@
 from json import load
 from aiogram import F, types, Router
-from Files.filters.States import States
-from Files.support_function import return_to_start
+from filters.States import States
+from support_function import return_to_start
 router = Router()
 
 with open(r'../recurses/text_for_message/data_for_mess.json',

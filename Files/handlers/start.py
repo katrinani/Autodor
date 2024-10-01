@@ -6,15 +6,16 @@ from aiogram.types import FSInputFile
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from pydub import AudioSegment
-from Files.filters.States import States
-from Files.request import (
+from filters.States import States
+from request import (
     get_road_and_region,
     get_request_urgent_message,
     get_advertisements_for_region
 )
-from Files.support_function import btn_to_send_loc, concate_files, btn_yes_or_not
+from support_function import btn_to_send_loc, concate_files, btn_yes_or_not
 
 router = Router()
+
 
 with open(r'../recurses/text_for_message/data_for_mess.json',
           'r') as data_for_mess:

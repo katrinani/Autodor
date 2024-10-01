@@ -1,12 +1,12 @@
 from os import remove
 from json import load
 from aiogram import F, types, Router
-from Files.filters.States import States
+from filters.States import States
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
-from Files.support_function import return_to_start
-from Files.request import get_request_for_dots
-from Files.map import load_map
+from support_function import return_to_start
+from request import get_request_for_dots
+from map import load_map
 
 router = Router()
 

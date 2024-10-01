@@ -1,11 +1,11 @@
 from json import load
 from os import remove
 from aiogram import F, types, Router, Bot
-from Files.filters.States import States
-from Files.filters.IsPhotoOrVideo import IsPhotoOrVideo
+from filters.States import States
+from filters.IsPhotoOrVideo import IsPhotoOrVideo
 from aiogram.fsm.context import FSMContext
-from Files.request import post_request_location_and_description, post_request_media
-from Files.support_function import return_to_start, btn_yes_or_not
+from request import post_request_location_and_description, post_request_media
+from support_function import return_to_start, btn_yes_or_not
 
 router = Router()
 
