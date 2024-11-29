@@ -24,7 +24,9 @@ with open(r'/usr/src/app/recurses/text_for_message/data_for_mess.json',
 
 @router.message(Command('start'))
 async def start(message: types.Message, state: FSMContext):
-    await message.answer(text=mes_data['start_talk'], reply_markup=btn_to_send_loc())
+    await message.answer(text=mes_data['start_talk'])
+    await message.answer(text=mes_data['attention'])
+    await message.answer(text=mes_data['send_loc'], reply_markup=btn_to_send_loc())
     await state.set_state(States.input_location)
 
 
@@ -122,7 +124,7 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
     else:
         print(request_advertisements)
         count = len(request_advertisements['advertisements'])
-        text = ''
+        text = 'Новости по региону:\n'
         for i in range(count):
             title = request_advertisements['advertisements'][i]['title']
             message = request_advertisements['advertisements'][i]['description']
@@ -157,7 +159,7 @@ async def regional_advertisements(callback: types.CallbackQuery, state: FSMConte
     else:
         print(answer)
         count = len(answer['advertisements'])
-        text = ''
+        text = 'Новости по дороге:\n'
         for i in range(count):
             title = answer['advertisements'][i]['title']
             message = answer['advertisements'][i]['description']

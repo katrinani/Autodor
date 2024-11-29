@@ -64,7 +64,7 @@ async def traffic_situation(
     remove('map.png')
 
     await callback.message.answer(
-        text='Для просмотра других точек нажмите /start',
+        text='Для возврата в главное меню нажмите /start',
         reply_markup=return_to_start()
     )
     await state.clear()
