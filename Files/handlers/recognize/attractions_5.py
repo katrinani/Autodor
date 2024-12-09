@@ -24,7 +24,7 @@ async def attractions(
         state: FSMContext
 ):
     await callback.message.answer(
-        "Посетите [Азбуку мероприятий](https://regions.kp.ru/chel/azbuka-festival-ural/)!",
+        "Посетите [Азбуку мероприятий](https://regions.kp.ru/chel/azbuka-festival-ural/) Южного Урала!",
         parse_mode="Markdown"
     )
 
