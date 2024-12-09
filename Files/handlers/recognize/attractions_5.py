@@ -23,6 +23,11 @@ async def attractions(
         callback: types.CallbackQuery,
         state: FSMContext
 ):
+    await callback.message.answer(
+        "Посетите Азбуку мероприятий: [ссылка](https://regions.kp.ru/chel/azbuka-festival-ural/)!",
+        parse_mode="Markdown"
+    )
+
     # получение дороги
     data = await state.get_data()
     route = data["road"]
