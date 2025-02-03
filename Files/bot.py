@@ -5,7 +5,7 @@ from logging import basicConfig, INFO, FileHandler, StreamHandler
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
-from aiogram.types.input_file import InputFile
+from aiogram.types.input_file import InputFile, FSInputFile
 
 from handlers.recognize import (
     attractions_5,
@@ -39,7 +39,7 @@ with open(r'/usr/src/app/config.json', 'r') as json_file:
 
 async def on_startup(bot: Bot) -> None:
     name_certificate = environ.get('CERTIFICATE_PATH')
-    cert = InputFile(name_certificate)
+    cert = FSInputFile(name_certificate)
     await bot.set_webhook(
         url=f"{WEBHOOK_URL}{WEBHOOK_PATH}",
         certificate=cert,
